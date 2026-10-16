@@ -1,4 +1,4 @@
-name: Diagnóstico base (somente leitura)
+name: Diagnóstico/correção base
 on:
   push:
     branches: [diag-base]
@@ -11,6 +11,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install requests google-auth
+      - env: { GOOGLE_SA_JSON: "${{ secrets.GOOGLE_SA_JSON }}" }
+        run: python diag/corrigir.py
       - env: { GOOGLE_SA_JSON: "${{ secrets.GOOGLE_SA_JSON }}" }
         run: python diag/export_base.py
       - uses: actions/upload-artifact@v4
