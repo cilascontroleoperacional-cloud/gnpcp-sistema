@@ -11,7 +11,9 @@ def col(i):
     r=''; i+=1
     while i: i,m=divmod(i-1,26); r=chr(65+m)+r
     return r
+_ROWS={x['properties']['title']:x['properties']['gridProperties']['rowCount'] for x in s.get(B,params={'fields':'sheets.properties'}).json()['sheets']}
 def grid(tab, ncol, nrows, chunk=8000):
+    nrows=min(nrows,_ROWS.get(tab,nrows))   # limita ao tamanho real da aba
     out=[]
     for a in range(1,nrows+1,chunk):
         b=min(nrows,a+chunk-1)
@@ -23,8 +25,8 @@ def grid(tab, ncol, nrows, chunk=8000):
     while out and not any(x not in ('',None) for x in out[-1]): out.pop()
     return out
 dest={}
-dest['CDO de Máquinas']=grid('CDO_MAQUINAS',64,58200)
-dest['REND-Boletim de Produção']=grid('CDO_PRODUCAO',46,5000)
+dest['CDO de Máquinas']=grid('CDO_MAQUINAS',64,90000)
+dest['REND-Boletim de Produção']=grid('CDO_PRODUCAO',46,20000)
 dest['FATURAMENTO_COMPILADO']=grid('FATURAMENTO_COMPILADO',26,1002)
 dest['META X REALIZADO_CR1421']=grid('META_X_REALIZADO_CR1421',26,300)
 dest['META_DE_PLANTIO_CR1421']=grid('META_PLANTIO_CR1421',26,300)
