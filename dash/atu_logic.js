@@ -172,18 +172,18 @@ function processFR4(wb){
     hist[gn][comp2].dtr   = dtr2;
     hist[gn][comp2].dr    = dr2;
 
-    // mov consolidado: somar fat de todas as comps;
-    // usar meta/dias da competência mais recente com meta > 0
+    // mov consolidado: usar fat/meta/dias SOMENTE da competência mais recente com meta > 0
+    // (antes somava o fat de todas as competências contra a meta da atual -> % realização inflada)
     if(!movByCR[gn]){
       movByCR[gn]={cr:gn,contrato:ctr2,gestor:resp2,
         fat:0,proj:0,meta:0,restante:0,media_dia:0,pct_real:0,pct_ritmo:0,
         meta_ajust:majst2,esperado:esper2,dias_uteis:du2,dias_trab:dtr2,dias_rest:dr2,
         _bestRank:999};
     }
-    movByCR[gn].fat += fat2;
     var rank2=compRank(comp2);
     if(meta2>0 && rank2<movByCR[gn]._bestRank){
       movByCR[gn]._bestRank=rank2;
+      movByCR[gn].fat=fat2;
       movByCR[gn].meta=meta2;
       movByCR[gn].dias_uteis=du2;
       movByCR[gn].dias_trab=dtr2;
