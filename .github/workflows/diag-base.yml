@@ -1,0 +1,17 @@
+name: Diagnóstico base (somente leitura)
+on:
+  push:
+    branches: [diag-base]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install requests google-auth
+      - env: { GOOGLE_SA_JSON: "${{ secrets.GOOGLE_SA_JSON }}" }
+        run: python diag/export_base.py
+      - uses: actions/upload-artifact@v4
+        with: { name: diag-base, path: diag/out/, retention-days: 3 }
