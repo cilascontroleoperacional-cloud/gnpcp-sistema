@@ -153,6 +153,8 @@ function trocarCR(){
   var cr=$('fupCR').value;var lst=fazendasDoCR(cr).filter(temProd);
   lst.sort(function(a,b){return F.faz[a][2].localeCompare(F.faz[b][2]);});
   $('fupFaz').innerHTML=lst.map(function(i){return '<option value="'+i+'">'+F.faz[i][2]+'</option>';}).join('');
+  var rec=lst.slice().sort(function(a,b){return (F.faz[b][3]||'').localeCompare(F.faz[a][3]||'');})[0];
+  if(rec!==undefined)$('fupFaz').value=rec;
   render();
 }
 function render(){
