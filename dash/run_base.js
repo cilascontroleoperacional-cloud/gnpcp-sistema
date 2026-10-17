@@ -5,7 +5,7 @@ const g=JSON.parse(fs.readFileSync(__dirname+'/base_grids.json','utf8'));
 const wb=wbDaBase(g);
 const ctx=carregar();
 const html=fs.readFileSync('index_base.html','utf8');
-const r=gerar(ctx,html,wb,wb);
+const r=gerar(ctx,html,wb,wb,g);
 fs.mkdirSync('out_base',{recursive:true});
 for(const k in r.out) fs.writeFileSync('out_base/'+k+'.html',r.out[k]);
 console.log(r.log.join('\n'));
