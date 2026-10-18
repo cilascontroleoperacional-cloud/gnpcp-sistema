@@ -28,6 +28,7 @@ function gerar(ctx, htmlBase, wb1, wb2, grids){
     html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>'+v.titulo+'</title>');
     out[v.pasta]=html;
   }
+  if(fup) out['followup']=require('./followup_dash').paginaFollowup(fup);
   return {out, pcmR, fr4R, ex, log:ctx._log};
 }
 module.exports={carregar,gerar,XLSX};

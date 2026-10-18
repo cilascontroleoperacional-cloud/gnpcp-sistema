@@ -5,7 +5,7 @@ import sys, os, json, hashlib, base64, requests
 HERE=os.path.dirname(os.path.abspath(__file__))
 TOKEN=os.environ['CF_API_TOKEN']; ACC=os.environ['CF_ACCOUNT_ID']
 API=f"https://api.cloudflare.com/client/v4/accounts/{ACC}"
-MAPA={'gn-ms':'indicadores-gestao-gnms','lacan-arauco':'gnms-indicadores-pcp','pcm-lacan':'indicadores-mecanicos-gn-ms','cr1421':'pcpgn-dash-cr1421'}
+MAPA={'gn-ms':'indicadores-gestao-gnms','lacan-arauco':'gnms-indicadores-pcp','pcm-lacan':'indicadores-mecanicos-gn-ms','cr1421':'pcpgn-dash-cr1421','followup':'gn-followup-talhoes'}
 DRY='--dry' in sys.argv
 H={'Authorization':f'Bearer {TOKEN}'}
 def hsh(b): return hashlib.sha256((base64.b64encode(b).decode()+'html').encode()).hexdigest()[:32]
@@ -24,4 +24,8 @@ def deploy(var,name):
     r=requests.put(f'{API}/workers/scripts/{name}',headers=H,files={'metadata':(None,json.dumps(meta),'application/json')})
     print('   PUT',r.status_code, r.text[:300] if r.status_code!=200 else 'ok')
     r.raise_for_status()
-for v,n in MAPA.items(): deploy(v,n)
+    # garante o endereço público <nome>.<subdominio>.workers.dev (idempotente; necessário para workers novos)
+    r=requests.post(f'{API}/workers/scripts/{name}/subdomain',headers=H,json={'enabled':True,'previews_enabled':False})
+    print('   workers.dev',r.status_code)
+for v,n in MAPA.items():
+    if os.path.exists(os.path.join(HERE,'out_base',v+'.html')): deploy(v,n)

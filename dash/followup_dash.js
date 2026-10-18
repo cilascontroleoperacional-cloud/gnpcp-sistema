@@ -96,75 +96,63 @@ function filtrar(dados, crs) {
 
 const CSS = `
 #fupRoot{display:none;position:fixed;inset:0;top:38px;overflow:auto;background:#001450;color:#E8EEF8;font-family:inherit;z-index:9000;padding:16px 20px 40px}
+#fupRoot.solo{display:block;position:static;min-height:100vh}
 #fupRoot h2{margin:0 0 4px;font-size:20px}
 #fupRoot .fup-sub{color:#8AA0C0;font-size:12px;margin-bottom:14px}
 #fupRoot .fup-ctl{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
 #fupRoot .fup-ctl label{font-size:11px;color:#8AA0C0;text-transform:uppercase;letter-spacing:.05em;display:flex;flex-direction:column;gap:4px}
-#fupRoot select{background:#12294D;color:#E8EEF8;border:1px solid #2E5FA3;border-radius:6px;padding:7px 10px;font-size:13px;min-width:160px}
+#fupRoot select{background:#12294D;color:#E8EEF8;border:1px solid #2E5FA3;border-radius:6px;padding:7px 10px;font-size:13px;min-width:150px}
 #fupRoot .fup-seg{display:flex;border:1px solid #2E5FA3;border-radius:6px;overflow:hidden}
-#fupRoot .fup-seg button{background:#12294D;color:#8AA0C0;border:0;padding:8px 14px;font-size:12px;cursor:pointer}
+#fupRoot .fup-seg button{background:#12294D;color:#8AA0C0;border:0;padding:8px 14px;font-size:12px;cursor:pointer;font-family:inherit}
 #fupRoot .fup-seg button.on{background:#2E5FA3;color:#fff;font-weight:700}
-#fupRoot .fup-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px}
-#fupRoot .fup-kpi{background:#12294D;border-radius:8px;padding:11px 15px;border-left:3px solid #2E5FA3}
-#fupRoot .fup-kpi b{display:block;font-size:10px;color:#8AA0C0;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
-#fupRoot .fup-kpi span{display:block;font-size:20px;font-weight:700;margin-top:4px}
-#fupRoot .fup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
-#fupRoot .fup-card{background:#0D1F55;border:1px solid rgba(46,95,163,.35);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s}
-#fupRoot .fup-card:hover{border-color:#F5A623}
-#fupRoot .fup-card h4{margin:0;font-size:15px;display:flex;justify-content:space-between;align-items:baseline}
-#fupRoot .fup-card h4 small{font-size:11px;color:#8AA0C0;font-weight:400}
-#fupRoot .fup-bar{margin-top:9px}
-#fupRoot .fup-bar .lb{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#C9D6EA;margin-bottom:3px}
-#fupRoot .fup-bar .lb span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#fupRoot .fup-bar .lb b{white-space:nowrap}
-#fupRoot .fup-bar .tr{height:10px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
-#fupRoot .fup-bar .tr i{display:block;height:100%;border-radius:5px}
-#fupRoot .fup-det{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:12px}
-#fupRoot .fup-ch{background:#0D1F55;border:1px solid rgba(46,95,163,.35);border-radius:10px;padding:12px 14px}
-#fupRoot .fup-ch h4{margin:0 0 2px;font-size:13px;line-height:1.3}
-#fupRoot .fup-ch .meta{font-size:11px;color:#8AA0C0;margin-bottom:6px}
-#fupRoot .fup-ch .big{font-size:22px;font-weight:700}
-#fupRoot .fup-ch svg{width:100%;height:auto;display:block}
-#fupRoot .fup-ch svg text{font-family:inherit}
-#fupRoot .fup-back{background:#12294D;color:#E8EEF8;border:1px solid #2E5FA3;border-radius:6px;padding:7px 12px;cursor:pointer;font-size:12px}
-#fupRoot .fup-wrap{overflow:auto;border-radius:8px;border:1px solid rgba(46,95,163,.35);max-height:calc(100vh - 300px)}
-#fupRoot table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:100%}
-#fupRoot th{position:sticky;top:0;background:#0A2163;color:#C9D6EA;font-weight:600;padding:8px 10px;text-align:center;z-index:2;border-bottom:1px solid #2E5FA3;vertical-align:bottom}
-#fupRoot th.op{min-width:118px;max-width:150px;white-space:normal;line-height:1.25}
-#fupRoot th .u{display:block;color:#8AA0C0;font-weight:400;font-size:10px;margin-top:2px}
-#fupRoot td{padding:6px 10px;text-align:center;border-bottom:1px solid rgba(46,95,163,.15);white-space:nowrap}
-#fupRoot td.tl,#fupRoot th.tl{position:sticky;left:0;background:#0D1F55;z-index:1;text-align:left;font-weight:700}
-#fupRoot th.tl{z-index:3;background:#0A2163}
-#fupRoot tr.tot td{background:#0A2163;font-weight:700;position:sticky;bottom:0}
-#fupRoot td.c .v{display:block;font-weight:600}
-#fupRoot td.c .p{display:block;font-size:10px;opacity:.85}
-#fupRoot td.ok{background:rgba(39,174,96,.32)}
-#fupRoot td.pa{background:rgba(243,156,18,.38)}
-#fupRoot td.nh{background:rgba(46,95,163,.18)}
+#fupRoot .fup-info{font-size:12px;color:#8AA0C0;margin-bottom:10px}
+#fupRoot .fup-info b{color:#E8EEF8}
+#fupRoot .fup-tal{background:#0D1F55;border:1px solid rgba(46,95,163,.35);border-radius:10px;padding:12px 16px;margin-bottom:12px}
+#fupRoot .fup-tal.ok{border-color:rgba(39,174,96,.45)}
+#fupRoot .fup-tal .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:10px}
+#fupRoot .fup-tal .hd b{font-size:15px}
+#fupRoot .fup-tal .hd span{font-size:11px;color:#8AA0C0}
+#fupRoot .fup-ln{display:grid;grid-template-columns:minmax(220px,34%) 1fr minmax(230px,auto);gap:14px;align-items:center;padding:5px 0;border-top:1px solid rgba(46,95,163,.12)}
+#fupRoot .fup-ln .nm{font-size:12px;color:#C9D6EA;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fupRoot .fup-ln .tr{height:12px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+#fupRoot .fup-ln .tr i{display:block;height:100%;border-radius:6px}
+#fupRoot .fup-ln .vl{font-size:12px;text-align:right;white-space:nowrap}
+#fupRoot .fup-ln .vl span{color:#8AA0C0}
+#fupRoot h3{font-size:14px;margin:0 0 8px;color:#C9D6EA}
+#fupRoot .fup-wrap{overflow:auto;border-radius:8px;border:1px solid rgba(46,95,163,.35);margin-bottom:18px}
+#fupRoot table{border-collapse:separate;border-spacing:0;font-size:12px;width:100%}
+#fupRoot th{background:#0A2163;color:#C9D6EA;font-weight:600;padding:8px 10px;text-align:center;border-bottom:1px solid #2E5FA3;text-transform:uppercase;font-size:11px;letter-spacing:.03em}
+#fupRoot th:first-child{text-align:left}
+#fupRoot td{padding:7px 10px;text-align:center;border-bottom:1px solid rgba(46,95,163,.15)}
+#fupRoot td.at{text-align:left;font-weight:600;white-space:normal;max-width:460px;background:#0D1F55}
+#fupRoot td.gr{text-align:left;background:#0A2163;font-weight:700;color:#F5A623;padding:8px 10px}
+#fupRoot td.gr span{color:#8AA0C0;font-weight:400}
+#fupRoot .pill{display:inline-block;min-width:46px;padding:2px 8px;border-radius:10px;font-weight:700}
 #fupRoot .fup-leg{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#8AA0C0;margin:12px 0 0}
 #fupRoot .fup-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+@media (max-width:760px){#fupRoot{padding:12px}#fupRoot .fup-ln{grid-template-columns:1fr;gap:4px}#fupRoot .fup-ln .vl{text-align:left}}
 `;
 
 const JS = `
 (function(){
-var F=window.__FUP__, VIEW='graf', TAL=-1;
-var COR_OK='#27AE60',COR_AND='#F5A623',COR_SEM='#4F7BC4';
+var F=window.__FUP__, VIEW='barras';
+var VERDE='#27AE60',LAR='#F5A623',AZUL='#4F7BC4';
 function $(id){return document.getElementById(id);}
-function fmt(v,d){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d==null?2:d,maximumFractionDigits:d==null?2:d});}
-function pct(v){return (v*100).toLocaleString('pt-BR',{maximumFractionDigits:0})+'%';}
+function fmt(v){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function pct(v,d){return (v*100).toLocaleString('pt-BR',{maximumFractionDigits:d||0})+'%';}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
-function curto(s,n){n=n||58;return s.length>n?s.slice(0,n-2)+'…':s;}
-function dBR(iso){return iso?iso.slice(8,10)+'/'+iso.slice(5,7):'';}
-function dBRc(iso){return iso?iso.split('-').reverse().join('/'):'—';}
+function dBR(i){return i&&i!=='9'?i.split('-').reverse().join('/'):'—';}
+function pill(p){return p==null?'—':'<span class="pill" style="background:'+(p>=0.995?'rgba(39,174,96,.35)':'rgba(245,166,35,.35)')+'">'+pct(p)+'</span>';}
 var porTal={};F.rows.forEach(function(r){(porTal[r[0]]=porTal[r[0]]||[]).push(r);});
 function fazendasDoCR(cr){var o=[];F.faz.forEach(function(f,i){if(F.cr[f[0]]===cr)o.push(i);});return o;}
 function temProd(fi){for(var t=0;t<F.tal.length;t++){if(F.tal[t][0]===fi&&porTal[t])return true;}return false;}
-function talsDaFaz(fi){var t=[];F.tal.forEach(function(x,i){if(x[0]===fi)t.push(i);});
-  t.sort(function(a,b){var x=F.tal[a][1],y=F.tal[b][1],nx=/^\\d+$/.test(x),ny=/^\\d+$/.test(y);if(nx&&ny)return x-y;if(nx)return -1;if(ny)return 1;return x.localeCompare(y);});return t;}
+function ordTal(a,b){var x=F.tal[a][1],y=F.tal[b][1],nx=/^\\d+$/.test(x),ny=/^\\d+$/.test(y);if(nx&&ny)return x-y;if(nx)return -1;if(ny)return 1;return x.localeCompare(y);}
+function talsSel(){var fi=+$('fupFaz').value,ti=+$('fupTal').value,o=[];F.tal.forEach(function(t,i){if(t[0]===fi&&(ti<0||i===ti))o.push(i);});return o.sort(ordTal);}
 function compSel(){var c=$('fupComp').value;return c?F.comp.indexOf(c):-1;}
-function rowsTal(t,ci){return (porTal[t]||[]).filter(function(r){return ci<0||r[2]===ci;});}
-function somaOps(t,ci){var o={};rowsTal(t,ci).forEach(function(r){o[r[1]]=(o[r[1]]||0)+r[4];});return o;}
-function corPct(p){return p>=0.995?COR_OK:COR_AND;}
+function agreg(lst,ci){var ag={},set={};lst.forEach(function(t){set[t]=1;});
+  lst.forEach(function(t){(porTal[t]||[]).forEach(function(r){if(ci>=0&&r[2]!==ci)return;
+    var a=ag[r[1]]=ag[r[1]]||{v:0,ini:'9',fim:'',dias:{}};a.v+=r[4];var d=F.dt[r[3]];a.dias[d]=1;if(d<a.ini)a.ini=d;if(d>a.fim)a.fim=d;});});return ag;}
+function opsOrd(ag){return Object.keys(ag).map(Number).sort(function(a,b){return F.op[a].localeCompare(F.op[b]);});}
 function preencher(){
   var crs=[];F.cr.forEach(function(c,i){if(F.faz.some(function(f,fi){return f[0]===i&&temProd(fi);}))crs.push(c);});
   crs.sort();$('fupCR').innerHTML=crs.map(function(c){return '<option>'+c+'</option>';}).join('');
@@ -182,99 +170,48 @@ function trocarCR(){
   trocarFaz();
 }
 function trocarFaz(){
-  var fi=+$('fupFaz').value;var tals=isNaN(fi)?[]:talsDaFaz(fi);
+  var fi=+$('fupFaz').value,tals=[];F.tal.forEach(function(t,i){if(t[0]===fi)tals.push(i);});tals.sort(ordTal);
   $('fupTal').innerHTML='<option value="-1">Todos os talhões</option>'+tals.map(function(t){return '<option value="'+t+'">Talhão '+esc(F.tal[t][1])+'</option>';}).join('');
-  TAL=-1;render();
+  render();
 }
-function k(l,v){return '<div class="fup-kpi"><b>'+l+'</b><span>'+v+'</span></div>';}
 function render(){
-  var fi=+$('fupFaz').value, ci=compSel();
-  TAL=+$('fupTal').value;
-  if(isNaN(fi)){$('fupMain').innerHTML='';$('fupKpis').innerHTML='';return;}
-  var tals=talsDaFaz(fi);
-  var areaTot=0,semArea=0;tals.forEach(function(t){if(F.tal[t][2]!=null)areaTot+=F.tal[t][2];else semArea++;});
-  var ops={};tals.forEach(function(t){rowsTal(t,ci).forEach(function(r){ops[r[1]]=1;});});
-  var concl=0,anda=0;tals.forEach(function(t){var T=F.tal[t];if(!T[2])return;var s=somaOps(t,ci),mx=0;for(var o in s){if(F.und[o]==='HA'){var p=s[o]/T[2];if(p>mx)mx=p;}}if(mx>=0.995)concl++;else if(mx>0)anda++;});
-  $('fupKpis').innerHTML=k('Área cadastrada',fmt(areaTot)+' ha')+k('Talhões',tals.length+(semArea?' <small style="font-size:11px;color:#F5A623">('+semArea+' sem área)</small>':''))+
-    k('Atividades',Object.keys(ops).length)+k('Talhões com atividade concluída',concl)+k('Talhões em andamento',anda)+k('Último apontamento',dBRc(F.faz[fi][3]));
-  ['graf','tab'].forEach(function(v){$('fupV_'+v).className=VIEW===v?'on':'';});
-  $('fupTalBox').style.display=VIEW==='graf'?'':'none';
-  if(VIEW==='tab'){tabela(tals,ci);return;}
-  if(TAL>=0)detalhe(TAL,ci);else cards(tals,ci);
+  ['barras','tabela','concl'].forEach(function(v){$('fupV_'+v).className=VIEW===v?'on':'';});
+  $('fupLeg').style.display=VIEW==='barras'?'':'none';
+  if(isNaN(+$('fupFaz').value)){$('fupMain').innerHTML='';return;}
+  if(VIEW==='tabela')tabela();else barras(VIEW==='concl');
 }
-function barra(nome,und,v,area){
-  var temP=und==='HA'&&area, p=temP?v/area:null, w=temP?Math.min(p,1)*100:100, cor=temP?corPct(p):COR_SEM;
-  return '<div class="fup-bar" title="'+esc(nome)+'"><div class="lb"><span>'+esc(curto(nome,52))+'</span><b>'+(temP?pct(p)+' · ':'')+fmt(v)+' '+und.toLowerCase()+'</b></div>'+
-    '<div class="tr"><i style="width:'+w+'%;background:'+cor+(temP?'':';opacity:.55')+'"></i></div></div>';
-}
-function cards(tals,ci){
-  var h='<div class="fup-grid">';
-  tals.forEach(function(t){var T=F.tal[t],s=somaOps(t,ci);
-    var ol=Object.keys(s).map(Number).sort(function(a,b){return F.op[a].localeCompare(F.op[b]);});
-    h+='<div class="fup-card" data-t="'+t+'"><h4>Talhão '+esc(T[1])+'<small>'+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+' · '+ol.length+' atividade(s)</small></h4>';
-    if(!ol.length)h+='<div style="font-size:11px;color:#8AA0C0;margin-top:8px">Sem apontamento no período.</div>';
-    ol.forEach(function(o){h+=barra(F.op[o],F.und[o]||'',s[o],T[2]);});
+function barras(soConcl){
+  var ci=compSel(),tals=talsSel(),h='',nAt=0,nTal=0,haT=0;
+  tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci),ops=opsOrd(ag);
+    if(soConcl){if(!T[2])return;ops=ops.filter(function(o){if(F.und[o]!=='HA')return false;var p=ag[o].v/T[2];return p>=0.98&&p<=1.05;});}
+    if(!ops.length)return;nTal++;
+    h+='<div class="fup-tal'+(soConcl?' ok':'')+'"><div class="hd"><b>Talhão '+esc(T[1])+'</b><span>'+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+' · '+ops.length+' atividade(s)'+(soConcl?' concluída(s)':'')+'</span></div>';
+    ops.forEach(function(o){var a=ag[o],u=F.und[o]||'',ha=u==='HA'&&T[2],p=ha?a.v/T[2]:null,w=ha?Math.min(p,1)*100:100,cor=ha?(p>=0.995?VERDE:LAR):AZUL;
+      nAt++;haT+=ha?a.v:0;
+      h+='<div class="fup-ln"><span class="nm" title="'+esc(F.op[o])+'">'+esc(F.op[o])+'</span><div class="tr"><i style="width:'+w+'%;background:'+cor+(ha?'':';opacity:.55')+'"></i></div>'+
+        '<span class="vl"><b>'+(p!=null?pct(p,soConcl?1:0)+' · ':'')+fmt(a.v)+' '+u.toLowerCase()+'</b> <span>· '+(soConcl?dBR(a.ini)+' a '+dBR(a.fim):'últ. '+dBR(a.fim))+'</span></span></div>';});
     h+='</div>';});
-  $('fupMain').innerHTML=h+'</div>';
-  Array.prototype.forEach.call(document.querySelectorAll('#fupRoot .fup-card'),function(c){c.onclick=function(){$('fupTal').value=c.getAttribute('data-t');render();$('fupRoot').scrollTop=0;};});
+  var info=soConcl?'<div class="fup-info">Atividades com realização entre <b>98% e 105%</b> da área do talhão · <b>'+nAt+'</b> atividade(s) em <b>'+nTal+'</b> talhão(ões) · <b>'+fmt(haT)+' ha</b> concluídos</div>':'';
+  $('fupMain').innerHTML=info+(h||'<div class="fup-info" style="padding:16px 0">'+(soConcl?'Nenhuma atividade concluída para o filtro.':'Sem apontamento para o filtro.')+'</div>');
 }
-function grafico(serie,und,area){
-  // serie: [[iso,valor],...] ordenada; barras = produção do dia, linha = acumulado (% se HA)
-  var W=640,H=230,L=46,R=46,T=16,B=34,iw=W-L-R,ih=H-T-B,n=serie.length;
-  var mx=Math.max.apply(null,serie.map(function(x){return x[1];}))||1, ac=0, pts=[];
-  var temP=und==='HA'&&area, acTot=serie.reduce(function(s,x){return s+x[1];},0);
-  var acMax=temP?Math.max(area,acTot):acTot||1;
-  var bw=Math.max(2,Math.min(28,iw/n*0.7));
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img">';
-  for(var g=0;g<=4;g++){var y=T+ih-ih*g/4;svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="rgba(255,255,255,.08)"/>'+
-    '<text x="'+(L-6)+'" y="'+(y+3)+'" fill="#8AA0C0" font-size="10" text-anchor="end">'+fmt(mx*g/4,mx<10?1:0)+'</text>'+
-    '<text x="'+(W-R+6)+'" y="'+(y+3)+'" fill="#F5A623" font-size="10">'+(temP?Math.round(acMax/area*100*g/4)+'%':fmt(acMax*g/4,0))+'</text>';}
-  if(temP){var y100=T+ih-ih*(area/acMax);svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y100+'" y2="'+y100+'" stroke="#27AE60" stroke-dasharray="4 3"/><text x="'+(L+4)+'" y="'+(y100-4)+'" fill="#27AE60" font-size="10">100% da área ('+fmt(area)+' ha)</text>';}
-  var passo=Math.ceil(n/10);
-  serie.forEach(function(x,i){var cx=L+iw*(i+0.5)/n,h=ih*x[1]/mx;ac+=x[1];
-    svg+='<rect x="'+(cx-bw/2)+'" y="'+(T+ih-h)+'" width="'+bw+'" height="'+h+'" rx="2" fill="#4F7BC4"><title>'+dBRc(x[0])+': '+fmt(x[1])+' '+und.toLowerCase()+' · acumulado '+fmt(ac)+(temP?' ('+pct(ac/area)+')':'')+'</title></rect>';
-    pts.push(cx+','+(T+ih-ih*ac/acMax));
-    if(i%passo===0||i===n-1)svg+='<text x="'+cx+'" y="'+(H-B+14)+'" fill="#8AA0C0" font-size="10" text-anchor="middle">'+dBR(x[0])+'</text>';});
-  svg+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="#F5A623" stroke-width="2.2"/>';
-  pts.forEach(function(p){var q=p.split(',');svg+='<circle cx="'+q[0]+'" cy="'+q[1]+'" r="2.6" fill="#F5A623"/>';});
-  return svg+'</svg>';
-}
-function detalhe(t,ci){
-  var T=F.tal[t],por={};
-  rowsTal(t,ci).forEach(function(r){var o=por[r[1]]=por[r[1]]||{};var d=F.dt[r[3]];o[d]=(o[d]||0)+r[4];});
-  var ol=Object.keys(por).map(Number).sort(function(a,b){return F.op[a].localeCompare(F.op[b]);});
-  var h='<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><button class="fup-back" id="fupVoltar">← Todos os talhões</button>'+
-    '<div style="font-size:16px;font-weight:700">Talhão '+esc(T[1])+' <span style="font-size:12px;color:#8AA0C0;font-weight:400">'+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+' · '+esc(F.faz[T[0]][2])+'</span></div></div>';
-  if(!ol.length)h+='<div style="color:#8AA0C0">Sem apontamento no período.</div>';
-  h+='<div style="margin-bottom:14px">'+ol.map(function(o){var s=0;for(var d in por[o])s+=por[o][d];return barra(F.op[o],F.und[o]||'',s,T[2]);}).join('')+'</div><div class="fup-det">';
-  ol.forEach(function(o){var dias=Object.keys(por[o]).sort(),serie=dias.map(function(d){return [d,por[o][d]];});
-    var tot=serie.reduce(function(s,x){return s+x[1];},0),und=F.und[o]||'',temP=und==='HA'&&T[2];
-    var rest=temP?Math.max(0,T[2]-tot):0, media=tot/serie.length;
-    h+='<div class="fup-ch"><h4>'+esc(F.op[o])+'</h4><div class="meta"><span class="big" style="color:'+(temP?corPct(tot/T[2]):'#E8EEF8')+'">'+(temP?pct(tot/T[2]):fmt(tot)+' '+und.toLowerCase())+'</span> &nbsp; '+
-      fmt(tot)+' '+und.toLowerCase()+(temP?' de '+fmt(T[2])+' ha · faltam '+fmt(rest)+' ha':'')+' · '+serie.length+' dia(s) · média '+fmt(media)+'/dia · '+dBRc(dias[0])+' a '+dBRc(dias[dias.length-1])+
-      (temP&&rest>0&&media>0?' · previsão: ~'+Math.ceil(rest/media)+' dia(s) de trabalho':'')+'</div>'+grafico(serie,und,temP?T[2]:null)+'</div>';});
-  $('fupMain').innerHTML=h+'</div>';
-  $('fupVoltar').onclick=function(){$('fupTal').value='-1';render();};
-}
-function tabela(tals,ci){
-  var val={},ops={};
-  tals.forEach(function(t){var s=somaOps(t,ci);for(var o in s){val[t+'|'+o]=s[o];ops[o]=1;}});
-  var opl=Object.keys(ops).map(Number).sort(function(a,b){return F.op[a].localeCompare(F.op[b]);});
-  var areaTot=0;tals.forEach(function(t){if(F.tal[t][2]!=null)areaTot+=F.tal[t][2];});
-  var h='<div class="fup-wrap"><table><thead><tr><th class="tl">Talhão</th><th>Área (ha)</th>';
-  opl.forEach(function(o){h+='<th class="op" title="'+esc(F.op[o])+'">'+esc(curto(F.op[o]))+'<span class="u">'+(F.und[o]||'')+(F.und[o]==='HA'?' · %':'')+'</span></th>';});
-  h+='</tr></thead><tbody>';var tot={};
-  tals.forEach(function(t){var T=F.tal[t];h+='<tr><td class="tl">'+esc(T[1])+'</td><td>'+(T[2]!=null?fmt(T[2]):'—')+'</td>';
-    opl.forEach(function(o){var v=val[t+'|'+o]||0;tot[o]=(tot[o]||0)+v;if(!v){h+='<td></td>';return;}
-      if(F.und[o]==='HA'&&T[2]){var p=v/T[2];h+='<td class="c '+(p>=0.995?'ok':'pa')+'"><span class="v">'+fmt(v)+'</span><span class="p">'+pct(p)+'</span></td>';}
-      else h+='<td class="c nh"><span class="v">'+fmt(v)+'</span></td>';});h+='</tr>';});
-  h+='<tr class="tot"><td class="tl">TOTAL</td><td>'+fmt(areaTot)+'</td>';
-  opl.forEach(function(o){var v=tot[o]||0;h+='<td>'+fmt(v)+(F.und[o]==='HA'&&areaTot?'<span class="p" style="display:block;font-size:10px">'+pct(v/areaTot)+'</span>':'')+'</td>';});
-  $('fupMain').innerHTML=h+'</tr></tbody></table></div>';
+function tabela(){
+  var ci=compSel(),tals=talsSel(),fi=+$('fupFaz').value,ti=+$('fupTal').value,cs=$('fupComp').value;
+  var cab='<thead><tr><th>Atividade</th><th>Und.</th><th>Realizado</th><th>Área (ha)</th><th>% da área</th><th>Dias apontados</th><th>1º apontamento</th><th>Último apontamento</th></tr></thead>';
+  function linhas(ag,area){return opsOrd(ag).map(function(o){var a=ag[o],u=F.und[o]||'',ha=u==='HA'&&area,p=ha?a.v/area:null;
+    return '<tr><td class="at">'+esc(F.op[o])+'</td><td>'+u+'</td><td><b>'+fmt(a.v)+'</b></td><td>'+(ha?fmt(area):'—')+'</td><td>'+pill(p)+'</td><td>'+Object.keys(a.dias).length+'</td><td>'+dBR(a.ini)+'</td><td>'+dBR(a.fim)+'</td></tr>';}).join('');}
+  var h='';
+  if(ti<0){var at=0;tals.forEach(function(t){if(F.tal[t][2])at+=F.tal[t][2];});var agF=agreg(tals,ci);
+    h+='<h3>Total da fazenda — '+esc(F.faz[fi][2])+' · '+fmt(at)+' ha · '+tals.length+' talhões · '+(cs||'acumulado')+'</h3>'+
+      '<div class="fup-wrap"><table>'+cab+'<tbody>'+(linhas(agF,at)||'<tr><td colspan="8">Sem apontamento.</td></tr>')+'</tbody></table></div><h3>Por talhão</h3>';}
+  var corpo='';tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci);if(!Object.keys(ag).length)return;
+    corpo+='<tr><td colspan="8" class="gr">Talhão '+esc(T[1])+' <span>· '+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+'</span></td></tr>'+linhas(ag,T[2]);});
+  h+='<div class="fup-wrap"><table>'+cab+'<tbody>'+(corpo||'<tr><td colspan="8">Sem apontamento para o filtro.</td></tr>')+'</tbody></table></div>';
+  $('fupMain').innerHTML=h;
 }
 window.fupInit=function(){if(window._fupOk)return;window._fupOk=true;
   $('fupCR').onchange=trocarCR;$('fupFaz').onchange=trocarFaz;$('fupComp').onchange=render;$('fupTal').onchange=render;
-  $('fupV_graf').onclick=function(){VIEW='graf';render();};$('fupV_tab').onclick=function(){VIEW='tab';render();};preencher();};
+  ['barras','tabela','concl'].forEach(function(v){$('fupV_'+v).onclick=function(){VIEW=v;render();};});preencher();};
+if(document.getElementById('fupRoot').classList.contains('solo')){window.fupInit();return;}
 var _sw=window.switchDashTab;
 window.switchDashTab=function(id,el){
   var r=$('fupRoot');
@@ -296,6 +233,18 @@ window.switchDashTab=function(id,el){
 })();
 `;
 
+function blocoRaiz(d, solo, atualizado) {
+  return '<style>' + CSS + '</style>\n<div id="fupRoot"' + (solo ? ' class="solo"' : '') + '><h2>&#127793; Follow-up de Atividades por Talh&atilde;o</h2>' +
+    '<div class="fup-sub">Barras = Realizado &divide; &Aacute;rea do talh&atilde;o (atividades em HA) · &uacute;lt. = &uacute;ltimo apontamento · Conclu&iacute;das = entre 98% e 105% da &aacute;rea · &Aacute;reas: CAD_TALHOES (cadastro + CDO&times;BMS)' +
+    (atualizado ? ' · Atualizado em ' + atualizado : '') + '</div>' +
+    '<div class="fup-ctl"><label>CR<select id="fupCR"></select></label><label>Fazenda<select id="fupFaz"></select></label>' +
+    '<label>Talh&atilde;o<select id="fupTal"></select></label><label>Compet&ecirc;ncia<select id="fupComp"></select></label>' +
+    '<div class="fup-seg"><button id="fupV_barras" class="on">&#9776; Barras por talh&atilde;o</button><button id="fupV_tabela">&#9638; Tabela de totais</button><button id="fupV_concl">&#10004; Conclu&iacute;das (98% a 105%)</button></div></div>' +
+    '<div id="fupMain"></div>' +
+    '<div class="fup-leg" id="fupLeg"><span><i style="background:#27AE60"></i>100% da &aacute;rea</span><span><i style="background:#F5A623"></i>Em andamento</span><span><i style="background:#4F7BC4"></i>Atividade sem % (km, hora, dia)</span></div></div>\n' +
+    '<script>window.__FUP__=' + JSON.stringify(d).replace(/<\//g, '<\\/') + ';' + JS + '</script>\n';
+}
+
 function injetarFollowup(html, dados, crs) {
   const d = filtrar(dados, crs);
   if (!d.rows.length) return html;
@@ -305,16 +254,20 @@ function injetarFollowup(html, dados, crs) {
   const re = /<div class="dash-tab"[^>]*>[^<]*<\/div>/g; let m, j = i + 'class="dash-tabs">'.length;
   re.lastIndex = i; while ((m = re.exec(html)) && m.index < i + 4000) j = m.index + m[0].length;
   html = html.slice(0, j) + '\n' + tab + html.slice(j);
-  const root = '<style>' + CSS + '</style>\n<div id="fupRoot"><h2>&#127793; Follow-up de Atividades por Talh&atilde;o</h2>' +
-    '<div class="fup-sub">Barra = Realizado &divide; &Aacute;rea do talh&atilde;o (atividades em HA) · Clique num talh&atilde;o para ver a evolu&ccedil;&atilde;o di&aacute;ria de cada atividade · &Aacute;reas: CAD_TALHOES (cadastro + CDO&times;BMS)</div>' +
-    '<div class="fup-ctl"><label>CR<select id="fupCR"></select></label><label>Fazenda<select id="fupFaz"></select></label>' +
-    '<label id="fupTalBox">Talh&atilde;o<select id="fupTal"></select></label><label>Compet&ecirc;ncia<select id="fupComp"></select></label>' +
-    '<div class="fup-seg"><button id="fupV_graf" class="on">Gr&aacute;ficos</button><button id="fupV_tab">Tabela</button></div></div>' +
-    '<div class="fup-kpis" id="fupKpis"></div><div id="fupMain"></div>' +
-    '<div class="fup-leg"><span><i style="background:#27AE60"></i>100% da &aacute;rea</span><span><i style="background:#F5A623"></i>Em andamento</span><span><i style="background:#4F7BC4"></i>Atividade sem % (km, hora, dia) / produ&ccedil;&atilde;o di&aacute;ria</span><span><i style="background:#F5A623;height:3px;vertical-align:3px"></i>Acumulado</span></div></div>\n' +
-    '<script>window.__FUP__=' + JSON.stringify(d).replace(/<\//g, '<\\/') + ';' + JS + '</script>\n';
+  const root = blocoRaiz(d, false, '');
   const k = html.lastIndexOf('</body>');
   return k < 0 ? html + root : html.slice(0, k) + root + html.slice(k);
 }
 
-module.exports = { montarDados, injetarFollowup };
+// Página independente (5º link): só a aba Follow-up, todos os CRs.
+function paginaFollowup(dados) {
+  const agora = new Date(Date.now() - 4 * 3600 * 1000).toISOString().replace('T', ' ').slice(0, 16).split(' ');
+  const atual = agora[0].split('-').reverse().join('/') + ' ' + agora[1];
+  return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>GN Florestal · Follow-up por Talhão</title>' +
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">' +
+    '<style>html,body{margin:0;background:#001450;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}</style></head><body>' +
+    blocoRaiz(dados, true, atual) + '</body></html>';
+}
+
+module.exports = { montarDados, injetarFollowup, paginaFollowup };
