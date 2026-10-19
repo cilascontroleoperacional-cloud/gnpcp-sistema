@@ -185,8 +185,28 @@ function render(){
   if(isNaN(+$('fupFaz').value)){$('fupMain').innerHTML='';return;}
   if(VIEW==='tabela')tabela();else barras(VIEW==='concl');
 }
+function avAtv(t,ci,ai){var T=F.tal[t],a=agreg([t],ci)[ai],u=F.und[ai]||'',ha=u==='HA'&&T[2];
+  return {t:t,T:T,a:a,u:u,ha:ha,p:a&&ha?a.v/T[2]:null,v:a?a.v:0,k:a?(ha?a.v/T[2]:1e9+a.v):-1};}
+function barrasAtv(ci,ai){
+  var lst=talsSel().map(function(t){return avAtv(t,ci,ai);}).sort(function(x,y){return (y.k-x.k)||ordTal(x.t,y.t);});
+  var u=F.und[ai]||'',isHA=u==='HA',c=0,an=0,pe=0,sp=0,real=0,area=0,areaFeita=0,h='';
+  lst.forEach(function(e){real+=e.v;if(e.T[2])area+=e.T[2];
+    if(!e.a){pe++;}else if(e.ha){areaFeita+=e.T[2];if(e.p>=0.98)c++;else an++;}else sp++;
+    h+='<div class="fup-tal'+(e.p!=null&&e.p>=0.98?' ok':'')+'"><div class="hd"><b>Talhão '+esc(e.T[1])+'</b><span>'+(e.T[2]!=null?fmt(e.T[2])+' ha':'sem área cadastrada')+(e.a?'':' · sem apontamento')+'</span></div>';
+    if(!e.a){h+='<div class="fup-ln"><span class="nm" title="'+esc(F.op[ai])+'">'+esc(F.op[ai])+'</span><div class="tr"><i style="width:0"></i></div><span class="vl"><b style="color:'+VERM+'">0% · pendente</b></span></div></div>';return;}
+    var w=e.ha?Math.min(e.p,1)*100:100,cor=e.ha?(e.p>=0.995?VERDE:LAR):AZUL;
+    h+='<div class="fup-ln"><span class="nm" title="'+esc(F.op[ai])+'">'+esc(F.op[ai])+'</span><div class="tr"><i style="width:'+w+'%;background:'+cor+(e.ha?'':';opacity:.55')+'"></i></div>'+
+      '<span class="vl"><b>'+(e.p!=null?pct(e.p)+' · ':'')+fmt(e.v)+' '+u.toLowerCase()+'</b> <span>· últ. '+dBR(e.a.fim)+'</span></span></div></div>';});
+  var pg=isHA&&area?real/area:null,wt=pg!=null?Math.min(pg,1)*100:100;
+  var tot='<div class="fup-tal" style="border-color:#F5A623;background:#0A2163"><div class="hd"><b style="color:#F5A623">Total da atividade — '+esc(F.faz[+$('fupFaz').value][2])+'</b><span>'+lst.length+' talhão(ões)'+(isHA?' · '+fmt(area)+' ha':'')+'</span></div>'+
+    '<div class="fup-ln"><span class="nm" title="'+esc(F.op[ai])+'">'+esc(F.op[ai])+'</span><div class="tr"><i style="width:'+wt+'%;background:'+(pg!=null?(pg>=0.995?VERDE:LAR):AZUL)+'"></i></div>'+
+    '<span class="vl"><b>'+(pg!=null?pct(pg,1)+' · ':'')+fmt(real)+' '+u.toLowerCase()+(isHA?' de '+fmt(area)+' ha':'')+'</b></span></div></div>';
+  var info='<div class="fup-info">'+(isHA?'<b>'+c+'</b> concluído(s) · <b>'+an+'</b> em andamento · ':'')+(sp?'<b>'+sp+'</b> com apontamento (sem % de área) · ':'')+'<b style="color:'+VERM+'">'+pe+'</b> pendente(s) · ordenado do maior para o menor avanço</div>';
+  $('fupMain').innerHTML=tot+info+h;
+}
 function barras(soConcl){
   var ci=compSel(),tals=talsSel(),h='',nAt=0,nTal=0,haT=0,ai=atvSel(),cnt={c:0,a:0,p:0,s:0};
+  if(ai>=0&&!soConcl){barrasAtv(ci,ai);return;}
   tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci),ops=soAtv(opsOrd(ag));
     if(soConcl){if(!T[2])return;ops=ops.filter(function(o){if(F.und[o]!=='HA')return false;var p=ag[o].v/T[2];return p>=0.98&&p<=1.05;});}
     if(ai>=0&&!soConcl){
@@ -220,6 +240,7 @@ function tabela(){
     h+='<h3>Total da fazenda — '+esc(F.faz[fi][2])+' · '+fmt(at)+' ha · '+tals.length+' talhões · '+(cs||'acumulado')+'</h3>'+
       '<div class="fup-wrap"><table>'+cab+'<tbody>'+(linhas(agF,at)||'<tr><td colspan="8">Sem apontamento.</td></tr>')+'</tbody></table></div><h3>Por talhão</h3>';}
   var ai=atvSel();
+  if(ai>=0)tals=tals.map(function(t){return avAtv(t,ci,ai);}).sort(function(x,y){return (y.k-x.k)||ordTal(x.t,y.t);}).map(function(e){return e.t;});
   var corpo='';tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci);
     if(ai>=0&&!ag[ai]){corpo+='<tr><td colspan="8" class="gr">Talhão '+esc(T[1])+' <span>· '+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+'</span></td></tr><tr><td class="at">'+esc(F.op[ai])+'</td><td colspan="7" style="color:'+VERM+';font-weight:700">Pendente — sem apontamento</td></tr>';return;}
     if(!Object.keys(ag).length)return;
