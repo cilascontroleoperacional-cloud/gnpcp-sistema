@@ -1,4 +1,4 @@
-// Aba "Follow-up por Talhão" dos dashboards GN.
+// Aba "Avanço por Talhão" (antiga "Follow-up por Talhão") dos dashboards GN.
 // Lê CDO_PRODUCAO (REND-Boletim de Produção) + CAD_TALHOES da base e injeta uma aba nova no HTML.
 // Realizado = soma da Produção (Tipo Recurso = Principal, Produção > 0, sem APOIO E MANUTENÇÃO)
 // por CR + Cód. Projeto + Talhão + Operação + Competência. % = Realizado ÷ Área do talhão (só operações em HA).
@@ -136,7 +136,7 @@ const CSS = `
 const JS = `
 (function(){
 var F=window.__FUP__, VIEW='barras';
-var VERDE='#27AE60',LAR='#F5A623',AZUL='#4F7BC4';
+var VERDE='#27AE60',LAR='#F5A623',AZUL='#4F7BC4',VERM='#E74C3C';
 function $(id){return document.getElementById(id);}
 function fmt(v){return Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function pct(v,d){return (v*100).toLocaleString('pt-BR',{maximumFractionDigits:d||0})+'%';}
@@ -149,6 +149,8 @@ function temProd(fi){for(var t=0;t<F.tal.length;t++){if(F.tal[t][0]===fi&&porTal
 function ordTal(a,b){var x=F.tal[a][1],y=F.tal[b][1],nx=/^\\d+$/.test(x),ny=/^\\d+$/.test(y);if(nx&&ny)return x-y;if(nx)return -1;if(ny)return 1;return x.localeCompare(y);}
 function talsSel(){var fi=+$('fupFaz').value,ti=+$('fupTal').value,o=[];F.tal.forEach(function(t,i){if(t[0]===fi&&(ti<0||i===ti))o.push(i);});return o.sort(ordTal);}
 function compSel(){var c=$('fupComp').value;return c?F.comp.indexOf(c):-1;}
+function atvSel(){var v=$('fupAtv').value;return v===''?-1:+v;}
+function soAtv(ops){var a=atvSel();return a<0?ops:ops.filter(function(o){return o===a;});}
 function agreg(lst,ci){var ag={},set={};lst.forEach(function(t){set[t]=1;});
   lst.forEach(function(t){(porTal[t]||[]).forEach(function(r){if(ci>=0&&r[2]!==ci)return;
     var a=ag[r[1]]=ag[r[1]]||{v:0,ini:'9',fim:'',dias:{}};a.v+=r[4];var d=F.dt[r[3]];a.dias[d]=1;if(d<a.ini)a.ini=d;if(d>a.fim)a.fim=d;});});return ag;}
@@ -172,6 +174,9 @@ function trocarCR(){
 function trocarFaz(){
   var fi=+$('fupFaz').value,tals=[];F.tal.forEach(function(t,i){if(t[0]===fi)tals.push(i);});tals.sort(ordTal);
   $('fupTal').innerHTML='<option value="-1">Todos os talhões</option>'+tals.map(function(t){return '<option value="'+t+'">Talhão '+esc(F.tal[t][1])+'</option>';}).join('');
+  var atual=$('fupAtv').value,ops=opsOrd(agreg(tals,-1));
+  $('fupAtv').innerHTML='<option value="">Todas as atividades</option>'+ops.map(function(o){return '<option value="'+o+'">'+esc(F.op[o])+'</option>';}).join('');
+  if(atual!==''&&ops.indexOf(+atual)>=0)$('fupAtv').value=atual;
   render();
 }
 function render(){
@@ -181,9 +186,16 @@ function render(){
   if(VIEW==='tabela')tabela();else barras(VIEW==='concl');
 }
 function barras(soConcl){
-  var ci=compSel(),tals=talsSel(),h='',nAt=0,nTal=0,haT=0;
-  tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci),ops=opsOrd(ag);
+  var ci=compSel(),tals=talsSel(),h='',nAt=0,nTal=0,haT=0,ai=atvSel(),cnt={c:0,a:0,p:0,s:0};
+  tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci),ops=soAtv(opsOrd(ag));
     if(soConcl){if(!T[2])return;ops=ops.filter(function(o){if(F.und[o]!=='HA')return false;var p=ag[o].v/T[2];return p>=0.98&&p<=1.05;});}
+    if(ai>=0&&!soConcl){
+      if(!ops.length){cnt.p++;nTal++;
+        h+='<div class="fup-tal"><div class="hd"><b>Talhão '+esc(T[1])+'</b><span>'+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+' · sem apontamento</span></div>'+
+          '<div class="fup-ln"><span class="nm" title="'+esc(F.op[ai])+'">'+esc(F.op[ai])+'</span><div class="tr"><i style="width:0"></i></div><span class="vl"><b style="color:'+VERM+'">0% · pendente</b></span></div></div>';
+        return;}
+      var a0=ag[ai];if(F.und[ai]==='HA'&&T[2]){if(a0.v/T[2]>=0.98)cnt.c++;else cnt.a++;}else cnt.s++;
+    }
     if(!ops.length)return;nTal++;
     h+='<div class="fup-tal'+(soConcl?' ok':'')+'"><div class="hd"><b>Talhão '+esc(T[1])+'</b><span>'+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+' · '+ops.length+' atividade(s)'+(soConcl?' concluída(s)':'')+'</span></div>';
     ops.forEach(function(o){var a=ag[o],u=F.und[o]||'',ha=u==='HA'&&T[2],p=ha?a.v/T[2]:null,w=ha?Math.min(p,1)*100:100,cor=ha?(p>=0.995?VERDE:LAR):AZUL;
@@ -191,25 +203,32 @@ function barras(soConcl){
       h+='<div class="fup-ln"><span class="nm" title="'+esc(F.op[o])+'">'+esc(F.op[o])+'</span><div class="tr"><i style="width:'+w+'%;background:'+cor+(ha?'':';opacity:.55')+'"></i></div>'+
         '<span class="vl"><b>'+(p!=null?pct(p,soConcl?1:0)+' · ':'')+fmt(a.v)+' '+u.toLowerCase()+'</b> <span>· '+(soConcl?dBR(a.ini)+' a '+dBR(a.fim):'últ. '+dBR(a.fim))+'</span></span></div>';});
     h+='</div>';});
+  if(ai>=0&&!soConcl){var hasHA=F.und[ai]==='HA';
+    $('fupMain').innerHTML='<div class="fup-info">Atividade <b>'+esc(F.op[ai])+'</b> · <b>'+tals.length+'</b> talhão(ões)'+
+      (hasHA?' · <b>'+cnt.c+'</b> concluído(s) · <b>'+cnt.a+'</b> em andamento':'')+(cnt.s?' · <b>'+cnt.s+'</b> com apontamento (sem % de área)':'')+' · <b style="color:'+VERM+'">'+cnt.p+'</b> pendente(s)</div>'+h;
+    return;}
   var info=soConcl?'<div class="fup-info">Atividades com realização entre <b>98% e 105%</b> da área do talhão · <b>'+nAt+'</b> atividade(s) em <b>'+nTal+'</b> talhão(ões) · <b>'+fmt(haT)+' ha</b> concluídos</div>':'';
   $('fupMain').innerHTML=info+(h||'<div class="fup-info" style="padding:16px 0">'+(soConcl?'Nenhuma atividade concluída para o filtro.':'Sem apontamento para o filtro.')+'</div>');
 }
 function tabela(){
   var ci=compSel(),tals=talsSel(),fi=+$('fupFaz').value,ti=+$('fupTal').value,cs=$('fupComp').value;
   var cab='<thead><tr><th>Atividade</th><th>Und.</th><th>Realizado</th><th>Área (ha)</th><th>% da área</th><th>Dias apontados</th><th>1º apontamento</th><th>Último apontamento</th></tr></thead>';
-  function linhas(ag,area){return opsOrd(ag).map(function(o){var a=ag[o],u=F.und[o]||'',ha=u==='HA'&&area,p=ha?a.v/area:null;
+  function linhas(ag,area){return soAtv(opsOrd(ag)).map(function(o){var a=ag[o],u=F.und[o]||'',ha=u==='HA'&&area,p=ha?a.v/area:null;
     return '<tr><td class="at">'+esc(F.op[o])+'</td><td>'+u+'</td><td><b>'+fmt(a.v)+'</b></td><td>'+(ha?fmt(area):'—')+'</td><td>'+pill(p)+'</td><td>'+Object.keys(a.dias).length+'</td><td>'+dBR(a.ini)+'</td><td>'+dBR(a.fim)+'</td></tr>';}).join('');}
   var h='';
   if(ti<0){var at=0;tals.forEach(function(t){if(F.tal[t][2])at+=F.tal[t][2];});var agF=agreg(tals,ci);
     h+='<h3>Total da fazenda — '+esc(F.faz[fi][2])+' · '+fmt(at)+' ha · '+tals.length+' talhões · '+(cs||'acumulado')+'</h3>'+
       '<div class="fup-wrap"><table>'+cab+'<tbody>'+(linhas(agF,at)||'<tr><td colspan="8">Sem apontamento.</td></tr>')+'</tbody></table></div><h3>Por talhão</h3>';}
-  var corpo='';tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci);if(!Object.keys(ag).length)return;
+  var ai=atvSel();
+  var corpo='';tals.forEach(function(t){var T=F.tal[t],ag=agreg([t],ci);
+    if(ai>=0&&!ag[ai]){corpo+='<tr><td colspan="8" class="gr">Talhão '+esc(T[1])+' <span>· '+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+'</span></td></tr><tr><td class="at">'+esc(F.op[ai])+'</td><td colspan="7" style="color:'+VERM+';font-weight:700">Pendente — sem apontamento</td></tr>';return;}
+    if(!Object.keys(ag).length)return;
     corpo+='<tr><td colspan="8" class="gr">Talhão '+esc(T[1])+' <span>· '+(T[2]!=null?fmt(T[2])+' ha':'sem área cadastrada')+'</span></td></tr>'+linhas(ag,T[2]);});
   h+='<div class="fup-wrap"><table>'+cab+'<tbody>'+(corpo||'<tr><td colspan="8">Sem apontamento para o filtro.</td></tr>')+'</tbody></table></div>';
   $('fupMain').innerHTML=h;
 }
 window.fupInit=function(){if(window._fupOk)return;window._fupOk=true;
-  $('fupCR').onchange=trocarCR;$('fupFaz').onchange=trocarFaz;$('fupComp').onchange=render;$('fupTal').onchange=render;
+  $('fupCR').onchange=trocarCR;$('fupFaz').onchange=trocarFaz;$('fupComp').onchange=render;$('fupTal').onchange=render;$('fupAtv').onchange=render;
   ['barras','tabela','concl'].forEach(function(v){$('fupV_'+v).onclick=function(){VIEW=v;render();};});preencher();};
 if(document.getElementById('fupRoot').classList.contains('solo')){window.fupInit();return;}
 var _sw=window.switchDashTab;
@@ -234,11 +253,11 @@ window.switchDashTab=function(id,el){
 `;
 
 function blocoRaiz(d, solo, atualizado) {
-  return '<style>' + CSS + '</style>\n<div id="fupRoot"' + (solo ? ' class="solo"' : '') + '><h2>&#127793; Follow-up de Atividades por Talh&atilde;o</h2>' +
+  return '<style>' + CSS + '</style>\n<div id="fupRoot"' + (solo ? ' class="solo"' : '') + '><h2>&#127793; Avan&ccedil;o F&iacute;sico das Atividades por Talh&atilde;o</h2>' +
     '<div class="fup-sub">Barras = Realizado &divide; &Aacute;rea do talh&atilde;o (atividades em HA) · &uacute;lt. = &uacute;ltimo apontamento · Conclu&iacute;das = entre 98% e 105% da &aacute;rea · &Aacute;reas: CAD_TALHOES (cadastro + CDO&times;BMS)' +
     (atualizado ? ' · Atualizado em ' + atualizado : '') + '</div>' +
     '<div class="fup-ctl"><label>CR<select id="fupCR"></select></label><label>Fazenda<select id="fupFaz"></select></label>' +
-    '<label>Talh&atilde;o<select id="fupTal"></select></label><label>Compet&ecirc;ncia<select id="fupComp"></select></label>' +
+    '<label>Talh&atilde;o<select id="fupTal"></select></label><label>Atividade<select id="fupAtv" style="min-width:280px;max-width:420px"></select></label><label>Compet&ecirc;ncia<select id="fupComp"></select></label>' +
     '<div class="fup-seg"><button id="fupV_barras" class="on">&#9776; Barras por talh&atilde;o</button><button id="fupV_tabela">&#9638; Tabela de totais</button><button id="fupV_concl">&#10004; Conclu&iacute;das (98% a 105%)</button></div></div>' +
     '<div id="fupMain"></div>' +
     '<div class="fup-leg" id="fupLeg"><span><i style="background:#27AE60"></i>100% da &aacute;rea</span><span><i style="background:#F5A623"></i>Em andamento</span><span><i style="background:#4F7BC4"></i>Atividade sem % (km, hora, dia)</span></div></div>\n' +
@@ -248,7 +267,7 @@ function blocoRaiz(d, solo, atualizado) {
 function injetarFollowup(html, dados, crs) {
   const d = filtrar(dados, crs);
   if (!d.rows.length) return html;
-  const tab = '<div class="dash-tab" onclick="switchDashTab(\'fup\',this)">&#127793; Follow-up por Talh&atilde;o</div>';
+  const tab = '<div class="dash-tab" onclick="switchDashTab(\'fup\',this)">&#127793; Avan&ccedil;o por Talh&atilde;o</div>';
   const i = html.indexOf('class="dash-tabs">');
   if (i < 0) throw new Error('Follow-up: barra de abas (.dash-tabs) não encontrada');
   const re = /<div class="dash-tab"[^>]*>[^<]*<\/div>/g; let m, j = i + 'class="dash-tabs">'.length;
@@ -264,7 +283,7 @@ function paginaFollowup(dados) {
   const agora = new Date(Date.now() - 4 * 3600 * 1000).toISOString().replace('T', ' ').slice(0, 16).split(' ');
   const atual = agora[0].split('-').reverse().join('/') + ' ' + agora[1];
   return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>GN Florestal · Follow-up por Talhão</title>' +
+    '<title>GN Florestal · Avanço por Talhão</title>' +
     '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">' +
     '<style>html,body{margin:0;background:#001450;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}</style></head><body>' +
     blocoRaiz(dados, true, atual) + '</body></html>';
