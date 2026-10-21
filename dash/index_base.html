@@ -2855,7 +2855,7 @@ function frRenderMov(){
   });
 
   document.getElementById('tbMovBody').innerHTML = mv.length ? mv.map(function(m){
-    var seta = m.pct_ritmo >= 1 ? '<span class="arw up">&#9650;</span>' : '<span class="arw dn">&#9660;</span>';
+    var seta = Math.round(m.pct_ritmo * 100) > 96 ? '<span class="arw up">&#9650;</span>' : '<span class="arw dn">&#9660;</span>';
     return '<tr><td class="lft">' + m.gestor + '</td><td class="lft">' + m.contrato + '</td>' +
       '<td class="hl">' + frMoeda(m.fat) + '</td><td>' + frMoeda(m.proj) + '</td>' +
       '<td class="hl">' + frMoeda(m.meta) + '</td><td class="ctr">' + frPct(m.pct_real) + '</td>' +
