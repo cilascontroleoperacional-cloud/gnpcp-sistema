@@ -5,7 +5,7 @@ import sys, os, json, hashlib, base64, requests
 HERE=os.path.dirname(os.path.abspath(__file__))
 TOKEN=os.environ['CF_API_TOKEN']; ACC=os.environ['CF_ACCOUNT_ID']
 API=f"https://api.cloudflare.com/client/v4/accounts/{ACC}"
-MAPA={'gn-ms':'indicadores-gestao-gnms','lacan-arauco':'gnms-indicadores-pcp','pcm-lacan':'indicadores-mecanicos-gn-ms','cr1421':'pcpgn-dash-cr1421','followup':'gn-followup-talhoes'}
+MAPA={'gn-ms':'dashboard-gestao-ms','lacan-arauco':'dashboard-cr1270-cr1400','pcm-lacan':'dashboard-mec-cr1270-cr1400','cr1421':'dashboard-cr1421','followup':'gn-followup-talhoes'}
 DRY='--dry' in sys.argv
 H={'Authorization':f'Bearer {TOKEN}'}
 def hsh(b): return hashlib.sha256((base64.b64encode(b).decode()+'html').encode()).hexdigest()[:32]
