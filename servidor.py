@@ -28,6 +28,11 @@ PC_CPF     = os.environ.get("PRODCONTROL_CPF", "")        # DEVE ter pontuação
 PC_SENHA   = os.environ.get("PRODCONTROL_PASSWORD", "")   # NUNCA versionar — só via env do Railway
 PC_EMPRESA = os.environ.get("PRODCONTROL_COMPANY", "GL-HOLDING")   # com hífen (não é segredo)
 
+# --- Google OAuth2 (mesmo método do serviço antigo no Render) ---
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+GOOGLE_REFRESH_TOKEN = os.environ.get("GOOGLE_REFRESH_TOKEN")
+
 # --- Contratos (contractId filtra server-side em /odc) ---
 CONTRATOS = [
     {"nome": "ARAUCO",       "contractId": "20f59d50-b39a-4140-9aa7-6efcef3b05c5"},
@@ -331,19 +336,37 @@ def gerar_excel(dados, label, caminho):
 # =========================================================
 # Google Drive (reaproveitado)
 # =========================================================
+def get_access_token():
+    """Troca o refresh token por um access token via Google OAuth2."""
+    token_url = "https://oauth2.googleapis.com/token"
+    payload = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "refresh_token": GOOGLE_REFRESH_TOKEN,
+        "grant_type": "refresh_token",
+    }
+    r = requests.post(token_url, data=payload, timeout=30)
+    if r.status_code == 200:
+        return r.json().get("access_token")
+    log(f"Erro ao renovar token Google ({r.status_code}): {r.text[:120]}")
+    return None
+
+
 def upload_drive(caminho_local, nome_arquivo):
+    """Upload para o Google Drive usando OAuth2 (client_id/secret/refresh_token)."""
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
-    from google.oauth2 import service_account
+    from google.oauth2.credentials import Credentials
 
-    creds_json = os.environ.get("GOOGLE_CREDS_JSON")
-    if not creds_json:
-        log("GOOGLE_CREDS_JSON não configurado — pulando upload")
+    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOGLE_REFRESH_TOKEN):
+        log("Credenciais Google OAuth2 ausentes — pulando upload (arquivo fica só no servidor).")
         return None
 
-    creds_data = json.loads(creds_json)
-    creds = service_account.Credentials.from_service_account_info(
-        creds_data, scopes=["https://www.googleapis.com/auth/drive"])
+    access_token = get_access_token()
+    if not access_token:
+        return None
+
+    creds = Credentials(token=access_token)
     service = build("drive", "v3", credentials=creds)
 
     pasta_id = encontrar_ou_criar_pasta(service, "Boletins_2026", DRIVE_FOLDER_ID)
