@@ -2820,9 +2820,12 @@ function frRenderMov(){
       }
       // Competência histórica = já encerrada: projeção é o próprio realizado,
       // média diária e meta ajustada não fazem mais sentido
-      var isHist = soUmaComp && HIST_META[m.cr] && HIST_META[m.cr][compsAtivas[0]];
+      // Dias da competência selecionada (FATURAMENTO_COMPILADO); mês fechado = Dias Restantes 0
+      var hSel = (soUmaComp && HIST_META[m.cr]) ? HIST_META[m.cr][compsAtivas[0]] : null;
       var pct_real, media, esperado, proj, restante, meta_ajust, pct_ritmo;
       var d_uteis = m.dias_uteis, d_trab = m.dias_trab, d_rest = m.dias_rest;
+      if(hSel && (hSel.du || hSel.dtr)){ d_uteis = hSel.du || 0; d_trab = hSel.dtr || 0; d_rest = hSel.dr || 0; }
+      var isHist = !!hSel && !(d_rest > 0);
 
       pct_real = metaUsar > 0 ? fatCalc / metaUsar : 0;
 
@@ -2838,14 +2841,13 @@ function frRenderMov(){
         pct_ritmo = (hr !== undefined) ? hr : (metaUsar > 0 ? fatCalc / metaUsar : 0);
       } else {
         // Mês em andamento: projeta com base no ritmo até aqui
-        media      = m.dias_trab > 0 ? fatCalc / m.dias_trab : 0;
-        esperado   = media * m.dias_uteis;
-        proj       = esperado;
+        media      = d_trab > 0 ? fatCalc / d_trab : 0;
+        proj       = media * d_uteis;
+        esperado   = (hSel && hSel.esper) ? hSel.esper : (d_uteis > 0 ? metaUsar / d_uteis * d_trab : 0);
         restante   = Math.max(0, metaUsar - fatCalc);
-        meta_ajust = m.dias_rest > 0 ? restante / m.dias_rest : 0;
+        meta_ajust = d_rest > 0 ? restante / d_rest : 0;
         pct_ritmo  = metaUsar > 0 ? proj / metaUsar : 0;
       }
-      var proj      = m.dias_uteis > 0 ? fatCalc / Math.max(m.dias_trab,1) * m.dias_uteis : 0;
       return Object.assign({}, m, {fat:fatCalc, meta:metaUsar, proj:proj,
         pct_real:pct_real, restante:restante, media_dia:media,
         pct_ritmo:pct_ritmo, meta_ajust:meta_ajust, esperado:esperado,

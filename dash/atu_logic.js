@@ -139,8 +139,9 @@ function processFR4(wb){
   };
 
   // Ordem de precedência de competência (mais recente primeiro)
-  var compOrder=['Outubro-26','Setembro-26','Agosto-26','Julho-26','Junho-26','Maio-26','Abril-26'];
-  function compRank(c){var i=compOrder.indexOf(c);return i>=0?i:99;}
+  // Rank calculado pelo nome "Mês-AA" (menor = mais recente) — não depende de lista fixa
+  var MESES_CR=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  function compRank(c){var mm=/^(.+)-(\d{2})$/.exec(String(c||'').trim());if(!mm)return 9999;var i=MESES_CR.indexOf(mm[1]);if(i<0)return 9999;return -((+mm[2])*12+i);}
 
   // histMeta[CR][comp] = {fat, meta, ritmo, du, dtr, dr}
   var movByCR={}, hist={};
@@ -171,6 +172,8 @@ function processFR4(wb){
     hist[gn][comp2].du    = du2;
     hist[gn][comp2].dtr   = dtr2;
     hist[gn][comp2].dr    = dr2;
+    hist[gn][comp2].majst = majst2;
+    hist[gn][comp2].esper = esper2;
 
     // mov consolidado: usar fat/meta/dias SOMENTE da competência mais recente com meta > 0
     // (antes somava o fat de todas as competências contra a meta da atual -> % realização inflada)
