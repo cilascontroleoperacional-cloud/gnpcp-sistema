@@ -65,6 +65,19 @@ DRIVE_FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID", "1vdiXZ26okg2yxbotIZ437UwQkO
 
 
 _trava = threading.Lock()
+API_KEY = os.environ.get("API_KEY", "")   # chave compartilhada com o app (Apps Script)
+
+
+def autorizado():
+    """Ações que gravam exigem o cabeçalho X-API-Key igual à variável API_KEY do Render."""
+    if not API_KEY:
+        return True
+    import hmac
+    return hmac.compare_digest(request.headers.get("X-API-Key", ""), API_KEY)
+
+
+def negar():
+    return jsonify({"erro": "Não autorizado: chave de acesso ausente ou inválida."}), 401
 
 
 def reservar_execucao():
@@ -436,6 +449,8 @@ def status():
 
 @app.route("/extrair-boletim", methods=["POST"])
 def extrair():
+    if not autorizado():
+        return negar()
 
     body = request.get_json(silent=True) or {}
 
@@ -506,6 +521,8 @@ def atualizar():
     Body JSON (opcional): {"dias": 30, "gravar": true, "dashboards": true}
     gravar=false só compara e mostra o que mudaria. Acompanhe em GET /status.
     """
+    if not autorizado():
+        return negar()
     body = request.get_json(silent=True) or {}
     try:
         dias = int(body.get("dias", 30))
@@ -536,6 +553,8 @@ def pdf_parametros():
     if not arquivos:
         return jsonify({"erro": "Envie ao menos um PDF no campo 'pdfs'."}), 400
     gravar = str(request.form.get("gravar", "0")).lower() in ("1", "true", "sim")
+    if gravar and not autorizado():
+        return negar()
 
     lidos, erros = [], []
     for f in arquivos:
