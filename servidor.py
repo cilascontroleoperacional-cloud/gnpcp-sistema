@@ -64,6 +64,19 @@ COLUNAS = [
 DRIVE_FOLDER_ID = os.environ.get("DRIVE_FOLDER_ID", "1vdiXZ26okg2yxbotIZ437UwQkOoJv56d")
 
 
+_trava = threading.Lock()
+
+
+def reservar_execucao():
+    """Marca 'rodando' ANTES de criar a thread — evita duas execuções com cliques seguidos."""
+    with _trava:
+        if estado["rodando"]:
+            return False
+        estado.update({"rodando": True, "progresso": [], "resultado": None, "erro": None,
+                       "iniciado_em": datetime.now().isoformat(), "finalizado_em": None})
+        return True
+
+
 # =========================================================
 # Logging
 # =========================================================
@@ -252,12 +265,8 @@ def _fmt_dt(iso):
 # Extração principal (thread)
 # =========================================================
 def extrair_boletim(datas_alvo, label_arquivo):
-    """datas_alvo: set de 'YYYY-MM-DD'. label_arquivo: sufixo do nome do .xlsx"""
-    estado["rodando"] = True
-    estado["progresso"] = []
-    estado["resultado"] = None
-    estado["erro"] = None
-    estado["iniciado_em"] = datetime.now().isoformat()
+    """datas_alvo: set de 'YYYY-MM-DD'. label_arquivo: sufixo do nome do .xlsx
+    (estado já reservado por reservar_execucao() no endpoint)"""
 
     try:
         api = ProdControlAPI()
@@ -427,8 +436,6 @@ def status():
 
 @app.route("/extrair-boletim", methods=["POST"])
 def extrair():
-    if estado["rodando"]:
-        return jsonify({"erro": "Já existe uma extração em andamento. Aguarde."}), 409
 
     body = request.get_json(silent=True) or {}
 
@@ -458,6 +465,8 @@ def extrair():
     else:
         return jsonify({"erro": "Informe 'data', 'dias' ou 'inicio'+'fim'."}), 400
 
+    if not reservar_execucao():
+        return jsonify({"erro": "Já existe uma execução em andamento. Aguarde."}), 409
     t = threading.Thread(target=extrair_boletim, args=(datas, label), daemon=True)
     t.start()
     return jsonify({"mensagem": f"Extração iniciada ({label}). Consulte /status."})
@@ -465,8 +474,6 @@ def extrair():
 
 def atualizar_thread(dias, gravar, dashboards):
     import atualizar_base as ab
-    estado.update({"rodando": True, "progresso": [], "resultado": None, "erro": None,
-                   "iniciado_em": datetime.now().isoformat(), "finalizado_em": None})
     try:
         api = ProdControlAPI()
         api.login()
@@ -499,8 +506,6 @@ def atualizar():
     Body JSON (opcional): {"dias": 30, "gravar": true, "dashboards": true}
     gravar=false só compara e mostra o que mudaria. Acompanhe em GET /status.
     """
-    if estado["rodando"]:
-        return jsonify({"erro": "Já existe uma atualização em andamento. Aguarde."}), 409
     body = request.get_json(silent=True) or {}
     try:
         dias = int(body.get("dias", 30))
@@ -510,6 +515,8 @@ def atualizar():
         return jsonify({"erro": "'dias' deve ficar entre 1 e 62"}), 400
     gravar = bool(body.get("gravar", True))
     dashboards = bool(body.get("dashboards", True))
+    if not reservar_execucao():
+        return jsonify({"erro": "Já existe uma atualização em andamento. Aguarde."}), 409
     threading.Thread(target=atualizar_thread, args=(dias, gravar, dashboards), daemon=True).start()
     return jsonify({"mensagem": f"Atualização iniciada ({dias} dias, gravar={gravar}). Consulte /status."})
 

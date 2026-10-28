@@ -593,14 +593,48 @@ def registrar_log(base, rotina, resultado, detalhe):
                          "fields": "userEnteredValue"}}])
 
 
+DIAS_TOLERANCIA = 5   # competência anterior ainda aceita lançamentos atrasados até o dia 25
+
+
+def competencias_abertas(base, hoje):
+    """
+    Regra definida pelo usuário em 28/10/2026 — correções só em competência ABERTA:
+      - a competência de hoje (21 do mês anterior a 20 do mês) está sempre aberta;
+      - a anterior fica aberta só até o dia 25 (boletins do dia 20 lançados com atraso) e só para os
+        CRs cujo FAT. TOTAL em FATURAMENTO_COMPILADO ainda é fórmula (valor congelado = fechada);
+      - qualquer outra está fechada.
+    Retorna (inicio_da_janela, função aberta(cr, competencia)).
+    """
+    atual_ini = inicio_competencia(hoje)
+    atual = competencia_label(hoje)
+    anterior_ini = inicio_competencia(atual_ini - timedelta(days=1))
+    anterior = competencia_label(anterior_ini)
+    usa_anterior = (hoje - atual_ini).days < DIAS_TOLERANCIA
+    congeladas = set()
+    if usa_anterior:
+        v = base.valores(["FATURAMENTO_COMPILADO!A8:P200"], render="FORMULA")[0]
+        for r in v:
+            r = list(r) + [""] * 16
+            if re.match(r"^GN\d{4}$", str(r[0]).strip()) and not str(r[3]).startswith("="):
+                congeladas.add((str(r[0]).strip(), str(r[15]).strip()))
+
+    def aberta(cr, comp):
+        if comp == atual:
+            return True
+        return usa_anterior and comp == anterior and (cr, comp) not in congeladas
+    return (anterior_ini if usa_anterior else atual_ini), aberta
+
+
 def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None):
     """
-    Busca os últimos `dias` dias no ProdControl e sincroniza CDO_MAQUINAS e CDO_PRODUCAO.
+    Busca no ProdControl os boletins das competências ABERTAS (no máximo `dias` dias para trás)
+    e sincroniza CDO_MAQUINAS e CDO_PRODUCAO.
     gravar=False: só compara e devolve o relatório (nada é escrito na planilha).
     """
     hoje = hoje or agora_ms().date()
-    ini = hoje - timedelta(days=dias - 1)
-    log(f"Janela: {ini:%d/%m/%Y} a {hoje:%d/%m/%Y} ({dias} dias)")
+    ini_aberta, aberta = competencias_abertas(base, hoje)
+    ini = max(hoje - timedelta(days=dias - 1), ini_aberta)
+    log(f"Janela: {ini:%d/%m/%Y} a {hoje:%d/%m/%Y} (competências abertas)")
     dados = coletar(api, contratos, ini.isoformat(), hoje.isoformat(), log=log)
 
     avisos = set()
@@ -615,11 +649,25 @@ def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None)
     log(f"  {len(pfs)} formações de preço carregadas")
     maq = linhas_maquinas(dados, cab, ativos, pfs, avisos)
     prod = linhas_producao(dados, cab, pfs, avisos)
+    ignorados = {}
+    def filtra(linhas):
+        ok = []
+        for r in linhas:
+            comp = competencia_label(EPOCA + timedelta(days=r["Data"]))
+            if aberta(r["CR"], comp):
+                ok.append(r)
+            else:
+                ignorados.setdefault(f"{r['CR']} {comp}", set()).add(r["CDO"])
+        return ok
+    maq, prod = filtra(maq), filtra(prod)
+    for k, v in sorted(ignorados.items()):
+        log(f"  {k}: competência fechada — {len(v)} boletins ignorados")
     log(f"Linhas geradas: {len(maq)} máquinas | {len(prod)} produção")
 
     meta = base.meta()
     folhas = {s["properties"]["title"]: s for s in meta["sheets"]}
-    relatorio, reqs = {"janela": [ini.isoformat(), hoje.isoformat()], "avisos": sorted(avisos)}, []
+    relatorio, reqs = {"janela": [ini.isoformat(), hoje.isoformat()], "avisos": sorted(avisos),
+                       "fechadas_ignoradas": {k: len(v) for k, v in ignorados.items()}}, []
     agora = agora_ms()
     serial_agora = (agora - datetime(1899, 12, 30)).total_seconds() / 86400.0
     fonte = f"API PRODCONTROL {agora:%d/%m/%Y %H:%M}"
