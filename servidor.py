@@ -86,15 +86,20 @@ def reservar_execucao():
         if estado["rodando"]:
             return False
         estado.update({"rodando": True, "progresso": [], "resultado": None, "erro": None,
-                       "iniciado_em": datetime.now().isoformat(), "finalizado_em": None})
+                       "iniciado_em": agora_ms().isoformat(), "finalizado_em": None})
         return True
 
 
 # =========================================================
 # Logging
 # =========================================================
+def agora_ms():
+    """Horário de Mato Grosso do Sul (o servidor do Render roda em UTC)."""
+    return datetime.utcnow() - timedelta(hours=4)
+
+
 def log(msg):
-    ts = datetime.now().strftime("%H:%M:%S")
+    ts = agora_ms().strftime("%H:%M:%S")
     linha = f"[{ts}] {msg}"
     estado["progresso"].append(linha)
     print(linha, flush=True)
@@ -311,7 +316,7 @@ def extrair_boletim(datas_alvo, label_arquivo):
         estado["erro"] = str(e)
     finally:
         estado["rodando"] = False
-        estado["finalizado_em"] = datetime.now().isoformat()
+        estado["finalizado_em"] = agora_ms().isoformat()
 
 
 def contar_por_contrato(dados):
@@ -502,16 +507,24 @@ def atualizar_thread(dias, gravar, dashboards):
                 log("GITHUB_TOKEN não configurado — dashboards NÃO foram atualizados.")
                 rel["dashboards"] = "sem GITHUB_TOKEN"
             else:
+                inicio = datetime.utcnow()
                 ab.disparar_dashboards(gh)
-                log("Atualização dos dashboards disparada (GitHub Actions, ~3 min).")
+                log("Publicando dashboards (GitHub Actions, ~2 min)...")
                 rel["dashboards"] = "disparado"
+                estado["resultado"] = rel
+                pub = ab.acompanhar_publicacao(gh, inicio)
+                rel["publicacao"] = pub
+                log({"sucesso": "Dashboards publicados com sucesso.",
+                     "falha": "A publicação dos dashboards FALHOU — veja o link do GitHub.",
+                     "tempo esgotado": "Publicação ainda em andamento após 8 min — confira no GitHub."}
+                    .get(pub.get("situacao"), str(pub)))
         estado["resultado"] = rel
     except Exception as e:
         log(f"ERRO: {e}")
         estado["erro"] = str(e)[:500]
     finally:
         estado["rodando"] = False
-        estado["finalizado_em"] = datetime.now().isoformat()
+        estado["finalizado_em"] = agora_ms().isoformat()
 
 
 @app.route("/atualizar", methods=["POST"])
@@ -549,7 +562,8 @@ def pdf_parametros():
     """
     import faturamento as fat
 
-    arquivos = request.files.getlist("pdfs")
+    # aceita 'pdfs' repetido (navegador) ou pdf0, pdf1... (Apps Script não repete nomes de campo)
+    arquivos = [f for campo in request.files for f in request.files.getlist(campo)]
     if not arquivos:
         return jsonify({"erro": "Envie ao menos um PDF no campo 'pdfs'."}), 400
     gravar = str(request.form.get("gravar", "0")).lower() in ("1", "true", "sim")

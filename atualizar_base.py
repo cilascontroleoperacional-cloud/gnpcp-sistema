@@ -715,6 +715,29 @@ def buscar_formacoes(api, ids, workers=4):
         return {i: pf for i, pf in ex.map(um, ids) if pf}
 
 
+def acompanhar_publicacao(token_github, inicio_utc, repo="cilascontroleoperacional-cloud/gnpcp-sistema",
+                          workflow="atualizar-dashboards.yml", limite_s=480, intervalo_s=10):
+    """Espera a execução disparada (criada após inicio_utc) terminar. Devolve situação + link."""
+    h = {"Authorization": f"Bearer {token_github}", "Accept": "application/vnd.github+json"}
+    url = f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs?event=workflow_dispatch&per_page=5"
+    fim = time.time() + limite_s
+    link = f"https://github.com/{repo}/actions"
+    while time.time() < fim:
+        time.sleep(intervalo_s)
+        try:
+            runs = requests.get(url, headers=h, timeout=30).json().get("workflow_runs", [])
+        except Exception:
+            continue
+        for r in runs:
+            criado = datetime.strptime(r["created_at"], "%Y-%m-%dT%H:%M:%SZ")
+            if criado >= inicio_utc - timedelta(seconds=10):
+                link = r.get("html_url", link)
+                if r.get("status") == "completed":
+                    return {"situacao": "sucesso" if r.get("conclusion") == "success" else "falha", "link": link}
+                break
+    return {"situacao": "tempo esgotado", "link": link}
+
+
 def disparar_dashboards(token_github, repo="cilascontroleoperacional-cloud/gnpcp-sistema",
                         workflow="atualizar-dashboards.yml", publicar=True):
     r = requests.post(f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
