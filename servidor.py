@@ -449,6 +449,8 @@ def health():
 
 @app.route("/status", methods=["GET"])
 def status():
+    if not autorizado():
+        return negar()
     return jsonify(estado)
 
 
@@ -617,8 +619,11 @@ def pdf_parametros():
 
     if gravar:
         fat.gravar(pl, plano, linha_total)
+        def _antes(x):   # valores que estavam na planilha — permite desfazer pelo LOG
+            b = x.get("antes")
+            return f" (antes F={b['F']} M={b['M']} N={b['N']})" if b else ""
         resumo = "; ".join(f"{x['gn']} {x['competencia']} L{x['linha']} {x['acao']} "
-                           f"F={x['meta']} M={x['dias_uteis']} N={x['dias_trabalhados']}"
+                           f"F={x['meta']} M={x['dias_uteis']} N={x['dias_trabalhados']}{_antes(x)}"
                            f"{'' if x['confere'] else ' DIVERGE ' + str(x['diferenca'])}"
                            for x in plano)
         pl.log("PDF PARAMETROS", "OK" if all(x["confere"] for x in plano) else "DIVERGENCIA", resumo)

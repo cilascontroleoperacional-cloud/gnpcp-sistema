@@ -18,6 +18,7 @@ Regras espelhadas do Code.gs (consolidarMaquinas / consolidarProducao):
 Diferença em relação ao Code.gs: só regrava boletins NOVOS ou ALTERADOS (comparação célula a
 célula das colunas de origem). Tudo é aplicado num único spreadsheets.batchUpdate (atômico).
 """
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -369,6 +370,7 @@ def status_producao(p):
 class Base:
     def __init__(self, access_token, sheet_id=SHEET_ID):
         self.h = {"Authorization": f"Bearer {access_token}"}
+        self.sheet_id = sheet_id
         self.url = f"https://sheets.googleapis.com/v4/spreadsheets/{sheet_id}"
 
     def _req(self, metodo, path, **kw):
@@ -392,6 +394,82 @@ class Base:
 
     def batch(self, requests_):
         return self._req("POST", ":batchUpdate", json={"requests": requests_})
+
+
+# =============================================================== backup diário (Drive REST)
+PASTA_RAIZ_ID = "1vdiXZ26okg2yxbotIZ437UwQkOoJv56d"      # Drive: PCP Florestal
+BACKUP_PASTA = "Backups"
+BACKUP_PREFIXO = "BACKUP_GNPCP_BASE_2026_"
+BACKUP_MANTER = 7                                         # quantos backups diários ficam no Drive
+DRIVE = "https://www.googleapis.com/drive/v3"
+
+
+def _drive(base, metodo, path, **kw):
+    r = requests.request(metodo, DRIVE + path, headers=base.h, timeout=300, **kw)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Drive {metodo} {path.split('?')[0]} -> HTTP {r.status_code}: {r.text[:160]}")
+    return r.json()
+
+
+def backup_base(base, log=print, agora=None, manter=BACKUP_MANTER, pasta_raiz=PASTA_RAIZ_ID):
+    """
+    Copia a planilha para PCP Florestal/Backups ANTES da primeira gravação do dia
+    (nome BACKUP_GNPCP_BASE_2026_AAAA-MM-DD_HHMM, horário de MS). Já existe backup de hoje: não repete.
+    Mantém só os `manter` mais recentes — os demais vão para a lixeira do Drive (recuperáveis por 30 dias).
+    Levanta RuntimeError se algo falhar.
+    """
+    agora = agora or (datetime.utcnow() - timedelta(hours=4))
+    dia = f"{agora:%Y-%m-%d}"
+    try:
+        q = (f"name='{BACKUP_PASTA}' and mimeType='application/vnd.google-apps.folder' "
+             f"and '{pasta_raiz}' in parents and trashed=false")
+        achadas = _drive(base, "GET", "/files", params={"q": q, "fields": "files(id)",
+                                                         "supportsAllDrives": "true",
+                                                         "includeItemsFromAllDrives": "true"})["files"]
+        if achadas:
+            pasta = achadas[0]["id"]
+        else:
+            pasta = _drive(base, "POST", "/files", params={"supportsAllDrives": "true", "fields": "id"},
+                           json={"name": BACKUP_PASTA, "mimeType": "application/vnd.google-apps.folder",
+                                 "parents": [pasta_raiz]})["id"]
+            log(f"Pasta '{BACKUP_PASTA}' criada no Drive.")
+        q = f"'{pasta}' in parents and trashed=false and name contains '{BACKUP_PREFIXO}'"
+        existentes = [f for f in _drive(base, "GET", "/files", params={
+            "q": q, "fields": "files(id,name)", "pageSize": 200, "supportsAllDrives": "true",
+            "includeItemsFromAllDrives": "true"})["files"] if f["name"].startswith(BACKUP_PREFIXO)]
+        if any(f["name"].startswith(BACKUP_PREFIXO + dia) for f in existentes):
+            log(f"Backup de hoje ({dia}) já existe — mantido.")
+            return {"criado": False, "dia": dia}
+        nome = f"{BACKUP_PREFIXO}{agora:%Y-%m-%d_%H%M}"
+        novo = _drive(base, "POST", f"/files/{base.sheet_id}/copy",
+                      params={"supportsAllDrives": "true", "fields": "id,name"},
+                      json={"name": nome, "parents": [pasta]})
+        log(f"Backup da base criado no Drive: {nome}")
+        todos = sorted(existentes + [{"id": novo["id"], "name": nome}], key=lambda f: f["name"], reverse=True)
+        for f in todos[manter:]:
+            _drive(base, "PATCH", f"/files/{f['id']}", params={"supportsAllDrives": "true"},
+                   json={"trashed": True})
+            log(f"Backup antigo movido para a lixeira: {f['name']}")
+        return {"criado": True, "dia": dia, "nome": nome}
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Backup da base falhou: {e}") from e
+
+
+def garantir_backup(base, log=print):
+    """
+    Backup antes de gravar. Por padrão, se falhar a gravação NÃO acontece (BACKUP_OBRIGATORIO=1).
+    Com BACKUP_OBRIGATORIO=0 no Render, a gravação segue e o aviso aparece no resultado.
+    """
+    try:
+        return backup_base(base, log)
+    except Exception as e:
+        if os.environ.get("BACKUP_OBRIGATORIO", "1") == "0":
+            log(f"AVISO: {e} — gravando SEM backup (BACKUP_OBRIGATORIO=0).")
+            return {"criado": False, "erro": str(e)[:200]}
+        raise RuntimeError(f"{e}. Nada foi gravado na base. "
+                           f"(Para gravar mesmo assim: variável BACKUP_OBRIGATORIO=0 no Render.)") from e
 
 
 def col_letra(n):          # 1 -> A
@@ -687,6 +765,9 @@ def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None)
         reqs += r
     relatorio["gravado"] = False
     if gravar and reqs:
+        relatorio["backup"] = garantir_backup(base, log)     # 1 por dia, antes da primeira gravação
+        if relatorio["backup"].get("erro"):
+            relatorio["avisos"].append("Sem backup da base hoje: " + relatorio["backup"]["erro"])
         base.batch(reqs)                       # atômico: tudo ou nada
         relatorio["gravado"] = True
         m, p = relatorio["CDO_MAQUINAS"], relatorio["CDO_PRODUCAO"]
