@@ -45,15 +45,21 @@ COLS_PROD_ORIGEM = [
     "Observacao"]
 COLS_TEC = ["Chave", "Importado_Em", "Fonte"]
 
+# Colunas fora da comparação (o valor da base é mantido se todo o resto for igual):
+#  - Rendimento Total de máquinas: a exportação do ProdControl usa uma regra inconsistente quando
+#    trator e implemento dividem as mesmas paradas (3 de 1.028 linhas em 21-26/10/2026). A coluna não
+#    é usada por fórmulas nem dashboards. Boletins novos/alterados recebem (horas + paradas) / produção.
 ABAS = {
-    "MAQ": {"nome": "CDO_MAQUINAS", "cab": 8, "origem": COLS_MAQ_ORIGEM, "comp": "Competência2"},
-    "PROD": {"nome": "CDO_PRODUCAO", "cab": 5, "origem": COLS_PROD_ORIGEM, "comp": "Competência"},
+    "MAQ": {"nome": "CDO_MAQUINAS", "cab": 8, "origem": COLS_MAQ_ORIGEM, "comp": "Competência2",
+            "ignorar": ["Rendimento Total"]},
+    "PROD": {"nome": "CDO_PRODUCAO", "cab": 5, "origem": COLS_PROD_ORIGEM, "comp": "Competência",
+             "ignorar": []},
 }
 
 MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
          "Setembro", "Outubro", "Novembro", "Dezembro"]
 EPOCA = date(1899, 12, 30)                    # data zero das planilhas
-FUSO_REGISTRO = timedelta(hours=-4)           # Data Registro: horário de MS (ajustado no teste)
+FUSO_REGISTRO = timedelta(hours=-3)           # ProdControl registra em horário de Brasília (conferido com a base)
 
 
 # =============================================================== utilitários
@@ -93,8 +99,14 @@ def cod(v):
     return s
 
 
+def r2(x):
+    """Arredondamento comercial (0,365 -> 0,37), igual à planilha — round() do Python daria 0,36."""
+    from decimal import Decimal, ROUND_HALF_UP
+    return float(Decimal(repr(float(x))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
 def rend(horas, prod):
-    return round(horas / prod, 2) if prod else 0
+    return limpo(r2(horas / prod)) if prod else 0
 
 
 def competencia_label(d):
@@ -207,18 +219,41 @@ def composicao(pf, resource_type_id):
     for t in pf.get("typeHasPricesFormation") or []:
         if (t.get("resourceType") or {}).get("id") == resource_type_id:
             return ((t.get("charge") or {}).get("name", "") or "",
-                    limpo(num(t.get("price"))), limpo(num(t.get("income"))))
+                    limpo(r2(num(t.get("price")))), limpo(r2(num(t.get("income")))))
     return None
 
 
+class Cadastro:
+    """GET por id com cache (turmas -> CR; funcionários -> matrícula). 1 chamada por id distinto."""
+
+    def __init__(self, api, caminho):
+        self.api, self.caminho, self.cache = api, caminho, {}
+
+    def carregar(self, ids, workers=4):
+        novos = [i for i in set(ids) if i and i not in self.cache]
+
+        def um(i):
+            try:
+                return i, self.api.get(f"{self.caminho}/{i}")
+            except Exception:
+                return i, {}
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            for i, v in ex.map(um, novos):
+                self.cache[i] = v
+
+    def __getitem__(self, i):
+        return self.cache.get(i) or {}
+
+
 # =============================================================== montagem das linhas
-def cabecalhos(odcs):
+def cabecalhos(odcs, turmas, pessoas):
     """id do boletim -> campos comuns às linhas (máquina e produção)."""
     out = {}
     for d in odcs:
-        cls = d.get("class") or {}
+        cls = turmas[(d.get("class") or {}).get("id")] or (d.get("class") or {})
         cc = cls.get("costCenter") or {}
-        sup, lid = d.get("supervisor") or {}, d.get("leader") or {}
+        sup = pessoas[(d.get("supervisor") or {}).get("id")] or (d.get("supervisor") or {})
+        lid = pessoas[(d.get("leader") or {}).get("id")] or (d.get("leader") or {})
         dt = datetime.strptime(d["bulletinDate"][:10], "%Y-%m-%d").date()
         out[d["id"]] = {
             "_data": dt, "_contrato": d.get("_contrato_nome", ""),
@@ -265,8 +300,8 @@ def linhas_maquinas(dados, cab, ativos, pfs, avisos):
             "Horimetro Inicial": limpo(num(m.get("hourMeterStart"))),
             "Horimetro Final": limpo(num(m.get("hourMeterEnd"))),
             "Tipo de Recurso": tipo, "Preço do Recurso": preco,
-            "Criado por": (m.get("createdBy") or {}).get("name", "") or h["_criado"],
-            "Alterado por": (m.get("updatedBy") or {}).get("name", "") or h["_alterado"],
+            "Criado por": (m.get("createdBy") or {}).get("name", "") or "",
+            "Alterado por": (m.get("updatedBy") or {}).get("name", "") or "",   # vazio = nunca alterada
             "Data Registro": serial_dt(m.get("createdAt")), "Obs": h["_obs"],
         })
         paradas = 0.0
@@ -290,7 +325,7 @@ def linhas_maquinas(dados, cab, ativos, pfs, avisos):
     return saida
 
 
-def linhas_producao(dados, cab, avisos):
+def linhas_producao(dados, cab, pfs, avisos):
     saida = []
     for p in dados["prod"]:
         h = cab.get((p.get("operationDailyControl") or {}).get("id"))
@@ -301,7 +336,7 @@ def linhas_producao(dados, cab, avisos):
         op = pf.get("operation") or {}
         rtipo = p.get("resourceType") or {}
         proj, plot = p.get("project") or {}, p.get("plot") or {}
-        comp = composicao(pf, rtipo.get("id"))
+        comp = composicao(pfs.get(pf.get("id")) or pf, rtipo.get("id"))
         if comp is None:
             avisos.add(f"sem formação de preço para função: {h['CR']} | {op.get('code')} | {rtipo.get('name')}")
             comp = ("", 0, 0)
@@ -318,8 +353,8 @@ def linhas_producao(dados, cab, avisos):
             "Total Horas": limpo(ht + hi), "Rendimento Previsto": rprev,
             "Rendimento Efetivo": rend(ht, prod), "Rendimento Total": rend(ht + hi, prod),
             "Preço do Recurso": preco, "Status": status_producao(p), "Tipo Recurso": tipo,
-            "Criado por": (p.get("createdBy") or {}).get("name", "") or h["_criado"],
-            "Alterado por": (p.get("updatedBy") or {}).get("name", "") or h["_alterado"],
+            "Criado por": (p.get("createdBy") or {}).get("name", "") or "",
+            "Alterado por": (p.get("updatedBy") or {}).get("name", "") or "",
             "Data Registro": serial_dt(p.get("createdAt")), "Observacao": h["_obs"],
         })
         saida.append(r)
@@ -327,8 +362,7 @@ def linhas_producao(dados, cab, avisos):
 
 
 def status_producao(p):
-    """PROVISÓRIO — origem do Status (EM ANDAMENTO / CONCLUIDO) a confirmar na API."""
-    return ""
+    return (p.get("status") or {}).get("name", "") or ""
 
 
 # =============================================================== planilha (REST)
@@ -380,12 +414,14 @@ def _norm(v):
     return s
 
 
-def _norm_linha(r, cols, i_reg):
+def _norm_linha(r, cols, i_reg, ignorar=()):
     out = []
     for j, c in enumerate(cols):
         v = r[j] if j < len(r) else ""
-        if j == i_reg:                         # Data Registro: tolerância de 1 minuto
-            v = round(float(v) * 1440) if isinstance(v, (int, float)) else _norm(v)
+        if c in ignorar:
+            v = ""
+        elif j == i_reg:                         # Data Registro: compara até o segundo
+            v = round(float(v) * 86400) if isinstance(v, (int, float)) else _norm(v)
         else:
             v = _norm(v)
         out.append(v)
@@ -429,11 +465,11 @@ def comparar(base, cfg, info, novas):
         ini = min(min(v) for v in linhas_base.values())
         bloco = base.valores([f"{nome}!A{ini}:{col_letra(len(cols))}{info['ultima']}"])[0]
         for k, rows in linhas_base.items():
-            vals[k] = sorted((_norm_linha(bloco[x - ini] if x - ini < len(bloco) else [], cols, i_reg)
-                              for x in rows), key=repr)
+            vals[k] = sorted((_norm_linha(bloco[x - ini] if x - ini < len(bloco) else [], cols, i_reg,
+                                          cfg["ignorar"]) for x in rows), key=repr)
     res = {"gravar": [], "apagar": [], "novos": 0, "alterados": 0, "iguais": 0, "detalhe": []}
     for k, rs in por_bol.items():
-        api = sorted((_norm_linha([r[c] for c in cols], cols, i_reg) for r in rs), key=repr)
+        api = sorted((_norm_linha([r[c] for c in cols], cols, i_reg, cfg["ignorar"]) for r in rs), key=repr)
         if k not in linhas_base:
             res["novos"] += 1
         elif api == vals[k]:
@@ -568,21 +604,17 @@ def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None)
     dados = coletar(api, contratos, ini.isoformat(), hoje.isoformat(), log=log)
 
     avisos = set()
-    cab = cabecalhos(dados["odc"])
+    turmas, pessoas = Cadastro(api, "/classes"), Cadastro(api, "/employees")
+    turmas.carregar([(d.get("class") or {}).get("id") for d in dados["odc"]])
+    pessoas.carregar([(d.get(k) or {}).get("id") for d in dados["odc"] for k in ("supervisor", "leader")])
+    cab = cabecalhos(dados["odc"], turmas, pessoas)
     ativos = Ativos(api)
     ativos.carregar([(m.get("asset") or {}).get("id") for m in dados["maq"]])
-    pfs = {}
-    for p in dados["prod"]:
-        pf = p.get("priceFormation") or {}
-        if pf.get("typeHasPricesFormation"):
-            pfs[pf["id"]] = pf
-    faltam = {(m.get("priceFormation") or {}).get("id") for m in dados["maq"]} - set(pfs) - {None}
-    if faltam:
-        log(f"  {len(faltam)} formações de preço só aparecem em máquinas — buscando composição")
-        for pid, pf in buscar_formacoes(api, faltam).items():
-            pfs[pid] = pf
+    ids_pf = {(x.get("priceFormation") or {}).get("id") for x in dados["maq"] + dados["prod"]} - {None}
+    pfs = buscar_formacoes(api, ids_pf)
+    log(f"  {len(pfs)} formações de preço carregadas")
     maq = linhas_maquinas(dados, cab, ativos, pfs, avisos)
-    prod = linhas_producao(dados, cab, avisos)
+    prod = linhas_producao(dados, cab, pfs, avisos)
     log(f"Linhas geradas: {len(maq)} máquinas | {len(prod)} produção")
 
     meta = base.meta()
@@ -623,9 +655,16 @@ def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None)
     return relatorio
 
 
-def buscar_formacoes(api, ids):
-    """Composição de formações de preço que não apareceram em /odc/production (provisório)."""
-    return {}
+def buscar_formacoes(api, ids, workers=4):
+    """Composição completa (máquinas, implementos, veículos e mão de obra) de cada formação de preço.
+    /odc/production só traz a mão de obra; a máquina precisa desta rota."""
+    def um(i):
+        try:
+            return i, api.get(f"/prices-formation/{i}")
+        except Exception:
+            return i, {}
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        return {i: pf for i, pf in ex.map(um, ids) if pf}
 
 
 def disparar_dashboards(token_github, repo="cilascontroleoperacional-cloud/gnpcp-sistema",
