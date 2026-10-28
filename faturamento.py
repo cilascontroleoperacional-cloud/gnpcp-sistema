@@ -86,6 +86,7 @@ def ler_pdf(conteudo: bytes, nome=""):
     gerado_d, gerado_h, fim, gn, fat, meta, uteis, trab = m.groups()
     return {
         "arquivo": nome,
+        "responsavel": ler_responsavel(conteudo),
         "gerado_em": f"{gerado_d} {gerado_h}",
         "fim_competencia": fim,
         "competencia": label_competencia(fim),
@@ -95,6 +96,28 @@ def ler_pdf(conteudo: bytes, nome=""):
         "dias_uteis": round(_br(uteis), 2),
         "dias_trabalhados": round(_br(trab), 2),
     }
+
+
+def ler_responsavel(conteudo: bytes):
+    """
+    Nome do responsável (cabeçalho 'RESPONSÁVEL:' da página 1) via pdftotext -layout
+    (poppler). O pypdf quebra letras ('CARLOS M AGNO'), então sem pdftotext devolve "".
+    """
+    import subprocess
+    import tempfile
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+            tmp.write(conteudo)
+            tmp.flush()
+            txt = subprocess.run(["pdftotext", "-layout", "-l", "1", tmp.name, "-"],
+                                 capture_output=True, text=True, timeout=30).stdout
+    except Exception:
+        return ""
+    m = re.search(r"RESPONS[ÁA]VEL:\s*([^\n]+)", txt)
+    if not m:
+        return ""
+    nome = re.split(r"\s{3,}", m.group(1).strip())[0].strip()
+    return nome if re.fullmatch(r"[A-ZÀ-Ý][A-ZÀ-Ý .'-]{2,60}", nome) else ""
 
 
 # ---------------------------------------------------------------- Sheets (REST)
@@ -276,14 +299,14 @@ def planejar(pl, params):
         if alvo:
             item["acao"] = "atualizar"
             item["linha"] = alvo["linha"]
-            item["antes"] = {"F": alvo["F"], "M": alvo["M"], "N": alvo["N"]}
+            item["antes"] = {"B": alvo["resp"], "F": alvo["F"], "M": alvo["M"], "N": alvo["N"]}
         else:
             item["acao"] = "criar"
             item["linha"] = None
             if not modelo:
                 raise ValueError(f"{p['gn']} não tem nenhuma linha em {ABA_FAT} para servir de modelo")
             item["contrato"] = modelo["contrato"]
-            item["responsavel"] = modelo["resp"]
+            item["responsavel"] = p.get("responsavel") or modelo["resp"]
         plano.append(item)
     return plano, total
 
@@ -293,6 +316,9 @@ def gravar(pl, plano, linha_total):
     upd = []
     for it in [x for x in plano if x["acao"] == "atualizar"]:
         r = it["linha"]
+        resp = (it.get("responsavel") or "").strip()
+        if resp and resp != str(it["antes"]["B"]):
+            upd.append((f"{ABA_FAT}!B{r}", [["'" + resp]]))
         upd += [(f"{ABA_FAT}!F{r}", [[it["meta"]]]),
                 (f"{ABA_FAT}!M{r}:N{r}", [[it["dias_uteis"], it["dias_trabalhados"]]])]
     if upd:
