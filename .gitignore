@@ -3,3 +3,4 @@
 dash/node_modules/
 dash/base_grids.json
 dash/out_base/
+__pycache__/

@@ -440,6 +440,78 @@ def extrair():
     return jsonify({"mensagem": f"Extração iniciada ({label}). Consulte /status."})
 
 
+@app.route("/pdf-parametros", methods=["POST"])
+def pdf_parametros():
+    """
+    Recebe os PDFs diários (campo multipart 'pdfs', 1 ou mais) e:
+      - lê META, Dias Úteis e Dias Trabalhados de cada PDF;
+      - confere o Fat. Total do PDF com a soma de CDO_PRODUCAO;
+      - se divergir, aponta boletim a boletim a diferença contra o ProdControl;
+      - grava F/M/N em FATURAMENTO_COMPILADO só se o form trouxer gravar=1.
+    """
+    import faturamento as fat
+
+    arquivos = request.files.getlist("pdfs")
+    if not arquivos:
+        return jsonify({"erro": "Envie ao menos um PDF no campo 'pdfs'."}), 400
+    gravar = str(request.form.get("gravar", "0")).lower() in ("1", "true", "sim")
+
+    lidos, erros = [], []
+    for f in arquivos:
+        try:
+            lidos.append(fat.ler_pdf(f.read(), f.filename))
+        except Exception as e:
+            erros.append({"arquivo": f.filename, "erro": str(e)[:200]})
+    # mesmo GN + competência enviado 2x: vale o PDF gerado por último
+    unicos = {}
+    for p in lidos:
+        k = (p["gn"], p["competencia"])
+        dt = datetime.strptime(p["gerado_em"], "%d/%m/%Y %H:%M:%S")
+        if k not in unicos or dt > unicos[k][0]:
+            unicos[k] = (dt, p)
+    lidos = [v[1] for v in unicos.values()]
+    if not lidos:
+        return jsonify({"erro": "Nenhum PDF válido.", "erros": erros}), 400
+
+    token = get_access_token()
+    if not token:
+        return jsonify({"erro": "Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN)."}), 500
+    pl = fat.Planilha(token)
+
+    try:
+        plano, linha_total = fat.planejar(pl, lidos)
+    except Exception as e:
+        return jsonify({"erro": str(e)[:300], "erros": erros}), 400
+
+    api = None
+    for it in plano:
+        total, por_bol, tipo = fat.soma_base(pl, it["gn"], it["competencia"])
+        it["fat_base"] = total
+        it["diferenca"] = round(total - it["fat_pdf"], 2)
+        it["confere"] = abs(it["diferenca"]) <= fat.TOLERANCIA
+        it["divergencias"] = []
+        if not it["confere"]:
+            try:
+                if api is None:
+                    api = ProdControlAPI()
+                    api.login()
+                ate = datetime.strptime(it["gerado_em"][:10], "%d/%m/%Y") - timedelta(days=1)
+                it["divergencias"] = fat.diagnosticar(api, it["gn"], it["fim_competencia"],
+                                                      por_bol, tipo, ate.strftime("%Y-%m-%d"))
+            except Exception as e:
+                it["divergencias"] = [{"erro": f"diagnóstico falhou: {str(e)[:200]}"}]
+
+    if gravar:
+        fat.gravar(pl, plano, linha_total)
+        resumo = "; ".join(f"{x['gn']} {x['competencia']} L{x['linha']} {x['acao']} "
+                           f"F={x['meta']} M={x['dias_uteis']} N={x['dias_trabalhados']}"
+                           f"{'' if x['confere'] else ' DIVERGE ' + str(x['diferenca'])}"
+                           for x in plano)
+        pl.log("PDF PARAMETROS", "OK" if all(x["confere"] for x in plano) else "DIVERGENCIA", resumo)
+
+    return jsonify({"gravado": gravar, "itens": plano, "erros": erros})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
