@@ -27,6 +27,14 @@ API_BASE   = "https://prodcontrol.app.br"
 PC_CPF     = os.environ.get("PRODCONTROL_CPF", "")        # DEVE ter pontuação (ex.: 000.000.000-00)
 PC_SENHA   = os.environ.get("PRODCONTROL_PASSWORD", "")   # NUNCA versionar — só via env do Railway
 PC_EMPRESA = os.environ.get("PRODCONTROL_COMPANY", "GL-HOLDING")   # com hífen (não é segredo)
+# Acesso reserva (opcional): usado só se o principal for recusado. Aceita CPF (com pontuação) ou e-mail.
+PC_CPF_2   = os.environ.get("PRODCONTROL_CPF_2", "")
+PC_SENHA_2 = os.environ.get("PRODCONTROL_PASSWORD_2", "")
+
+
+def _corpo_login(usuario, senha):
+    campo = "email" if "@" in usuario else "cpf"
+    return {campo: usuario.strip(), "password": senha, "company": PC_EMPRESA}
 
 # --- Google OAuth2 (mesmo método do serviço antigo no Render) ---
 GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID")
@@ -76,29 +84,44 @@ class ProdControlAPI:
         self._cache_tipo = {}   # asset_id -> resourceType.name
 
     def login(self):
-        if not PC_CPF or not PC_SENHA:
-            raise RuntimeError(
-                "Credenciais ausentes: defina PRODCONTROL_CPF e PRODCONTROL_PASSWORD "
-                "nas variáveis de ambiente do Railway."
-            )
-        r = self.s.post(f"{API_BASE}/login", json={
-            "cpf": PC_CPF, "password": PC_SENHA, "company": PC_EMPRESA
-        }, timeout=30)
-        if r.status_code != 200:
-            raise RuntimeError(f"Login falhou ({r.status_code}): {r.text[:200]}")
-        self.token = r.json()["token"]
-        log("Login na API ProdControl OK (token 8h).")
+        """Tenta o acesso principal e, se for recusado, o reserva — cada um UMA vez (o ProdControl
+        bloqueia o endereço após várias tentativas seguidas)."""
+        acessos = [("principal", PC_CPF, PC_SENHA), ("reserva", PC_CPF_2, PC_SENHA_2)]
+        acessos = [a for a in acessos if a[1] and a[2]]
+        if not acessos:
+            raise RuntimeError("Credenciais ausentes: defina PRODCONTROL_CPF e PRODCONTROL_PASSWORD "
+                               "nas variáveis de ambiente do Render.")
+        erros = []
+        for nome, usuario, senha in acessos:
+            r = self.s.post(f"{API_BASE}/login", json=_corpo_login(usuario, senha), timeout=30)
+            if r.status_code == 200 and "token" in r.json():
+                self.token = r.json()["token"]
+                log(f"Login na API ProdControl OK — acesso {nome} (token 8h).")
+                return
+            erros.append(f"{nome}: {r.status_code} {r.text[:120]}")
+            log(f"Login com acesso {nome} recusado ({r.status_code}).")
+        raise RuntimeError("Login falhou — " + " | ".join(erros))
 
     def _headers(self):
         return {"Authorization": f"Bearer {self.token}"}
 
     def get(self, path):
+        """GET com 1 re-login se o token expirar e novas tentativas em falha passageira (5xx/429).
+        Nunca repete o LOGIN em laço: o ProdControl bloqueia o CPF após várias tentativas."""
+        import time as _t
         url = f"{API_BASE}{path}"
-        r = self.s.get(url, headers=self._headers(), timeout=60)
-        if r.status_code == 401:           # token expirou -> re-login 1x
-            log("Token expirado, refazendo login...")
-            self.login()
+        relogou = False
+        for tentativa in range(5):
             r = self.s.get(url, headers=self._headers(), timeout=60)
+            if r.status_code == 401 and not relogou:
+                log("Token expirado, refazendo login...")
+                self.login()
+                relogou = True
+                continue
+            if r.status_code in (429, 500, 502, 503, 504):
+                _t.sleep(3 * (tentativa + 1))
+                continue
+            break
         r.raise_for_status()
         return r.json()
 
@@ -438,6 +461,57 @@ def extrair():
     t = threading.Thread(target=extrair_boletim, args=(datas, label), daemon=True)
     t.start()
     return jsonify({"mensagem": f"Extração iniciada ({label}). Consulte /status."})
+
+
+def atualizar_thread(dias, gravar, dashboards):
+    import atualizar_base as ab
+    estado.update({"rodando": True, "progresso": [], "resultado": None, "erro": None,
+                   "iniciado_em": datetime.now().isoformat(), "finalizado_em": None})
+    try:
+        api = ProdControlAPI()
+        api.login()
+        token = get_access_token()
+        if not token:
+            raise RuntimeError("Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN).")
+        rel = ab.atualizar(api, ab.Base(token), CONTRATOS, dias=dias, gravar=gravar, log=log)
+        if gravar and dashboards:
+            gh = os.environ.get("GITHUB_TOKEN")
+            if not gh:
+                log("GITHUB_TOKEN não configurado — dashboards NÃO foram atualizados.")
+                rel["dashboards"] = "sem GITHUB_TOKEN"
+            else:
+                ab.disparar_dashboards(gh)
+                log("Atualização dos dashboards disparada (GitHub Actions, ~3 min).")
+                rel["dashboards"] = "disparado"
+        estado["resultado"] = rel
+    except Exception as e:
+        log(f"ERRO: {e}")
+        estado["erro"] = str(e)[:500]
+    finally:
+        estado["rodando"] = False
+        estado["finalizado_em"] = datetime.now().isoformat()
+
+
+@app.route("/atualizar", methods=["POST"])
+def atualizar():
+    """
+    Botão "Atualizar": últimos N dias do ProdControl -> CDO_MAQUINAS/CDO_PRODUCAO -> dashboards.
+    Body JSON (opcional): {"dias": 30, "gravar": true, "dashboards": true}
+    gravar=false só compara e mostra o que mudaria. Acompanhe em GET /status.
+    """
+    if estado["rodando"]:
+        return jsonify({"erro": "Já existe uma atualização em andamento. Aguarde."}), 409
+    body = request.get_json(silent=True) or {}
+    try:
+        dias = int(body.get("dias", 30))
+    except (TypeError, ValueError):
+        return jsonify({"erro": "'dias' deve ser um número"}), 400
+    if not 1 <= dias <= 62:
+        return jsonify({"erro": "'dias' deve ficar entre 1 e 62"}), 400
+    gravar = bool(body.get("gravar", True))
+    dashboards = bool(body.get("dashboards", True))
+    threading.Thread(target=atualizar_thread, args=(dias, gravar, dashboards), daemon=True).start()
+    return jsonify({"mensagem": f"Atualização iniciada ({dias} dias, gravar={gravar}). Consulte /status."})
 
 
 @app.route("/pdf-parametros", methods=["POST"])

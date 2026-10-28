@@ -169,11 +169,10 @@ class Planilha:
         r.raise_for_status()
 
     def log(self, rotina, resultado, detalhe):
-        agora = (datetime.utcnow() - timedelta(hours=4)).strftime("%d/%m/%Y %H:%M")
-        r = requests.post(f"{self.base}/values/LOG!A:D:append", headers=self.h,
-                          params={"valueInputOption": "RAW", "insertDataOption": "INSERT_ROWS"},
-                          json={"values": [[agora, rotina, resultado, detalhe]]}, timeout=60)
-        r.raise_for_status()
+        """Mesma convenção do Code.gs: entrada nova no topo da aba LOG (linha 2)."""
+        from atualizar_base import Base, registrar_log
+        registrar_log(Base(self.h["Authorization"].split(" ", 1)[1], self.base.rsplit("/", 1)[1]),
+                      rotina, resultado, detalhe)
 
 
 # ---------------------------------------------------------------- base
