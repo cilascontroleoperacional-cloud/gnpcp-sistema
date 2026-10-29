@@ -608,6 +608,10 @@ def montar_requests(base, cfg, info, plano, sheet_id, filtro, agora_serial, font
     cols, n = cfg["origem"], len(novas)
     ult = info["ultima"]
     reqs = []
+    # Filtro com critério (linhas ocultas) bloqueia o copyPaste ("intervalo com uma linha filtrada"):
+    # tira o filtro antes e devolve o MESMO filtro, com os mesmos critérios, no fim.
+    if filtro:
+        reqs.append({"clearBasicFilter": {"sheetId": sheet_id}})
     if n:
         modelo = _linha_modelo(base, cfg, info)
         reqs.append({"insertDimension": {"range": {"sheetId": sheet_id, "dimension": "ROWS",
@@ -644,6 +648,8 @@ def montar_requests(base, cfg, info, plano, sheet_id, filtro, agora_serial, font
         rg = dict(f["range"])
         rg["endRowIndex"] = nova_ult
         f["range"] = rg
+        if f.get("filterSpecs"):          # 'criteria' é a forma antiga do mesmo dado; mandar os dois dá erro
+            f.pop("criteria", None)
         reqs.append({"setBasicFilter": {"filter": f}})
     return reqs, nova_ult
 
