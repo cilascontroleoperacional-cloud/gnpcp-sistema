@@ -379,9 +379,10 @@ class Base:
             if r.status_code in (429, 500, 502, 503):
                 time.sleep(5 * (t + 1))
                 continue
-            r.raise_for_status()
+            if r.status_code >= 400:     # mostra o motivo que o Google devolve (antes só '400 Bad Request')
+                raise RuntimeError(f"Google Sheets HTTP {r.status_code}: {r.text[:600]}")
             return r.json()
-        r.raise_for_status()
+        raise RuntimeError(f"Google Sheets HTTP {r.status_code} após 4 tentativas: {r.text[:300]}")
 
     def valores(self, rngs, render="UNFORMATTED_VALUE"):
         q = [("ranges", x) for x in rngs] + [("valueRenderOption", render),
