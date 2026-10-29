@@ -39,6 +39,11 @@ RE_LINHA = re.compile(
     r"(\d{2}/\d{2}/\d{4})\s*(\d{2}:\d{2}:\d{2});(\d{2}/\d{2}/\d{4});(GN\d{4});"
     r"([\d.,]+);([\d.,]+);([\d.,]+);([\d.,]+)")
 
+# Cartão visível do PDF ("23,51 Dias Úteis", "6,51 Dias Trabalhados"). A linha de controle
+# às vezes vem CORTADA pelo Power BI ("...;23,51;6,…"), então os dias saem do cartão.
+RE_DIAS_UTEIS = re.compile(r"(\d+(?:,\d+)?)\s*Dias\s*Úteis", re.I)
+RE_DIAS_TRAB = re.compile(r"(\d+(?:,\d+)?)\s*Dias\s*Trabalhados", re.I)
+
 
 def _br(s):
     """'1.234,56' / '1234,56' / '23' -> float"""
@@ -84,6 +89,14 @@ def ler_pdf(conteudo: bytes, nome=""):
     if not m:
         raise ValueError(f"{nome}: linha de controle não encontrada no PDF")
     gerado_d, gerado_h, fim, gn, fat, meta, uteis, trab = m.groups()
+    cortada = plano[m.end():m.end() + 1] in ("…", ".") or trab.endswith((",", "."))
+    vis_u, vis_t = RE_DIAS_UTEIS.search(plano), RE_DIAS_TRAB.search(plano)
+    if vis_u:
+        uteis = vis_u.group(1)
+    if vis_t:
+        trab = vis_t.group(1)
+    elif cortada:
+        raise ValueError(f"{nome}: Dias Trabalhados cortado no PDF e não achado no cartão — confira o arquivo")
     return {
         "arquivo": nome,
         "responsavel": ler_responsavel(conteudo),

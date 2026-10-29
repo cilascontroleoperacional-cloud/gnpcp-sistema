@@ -1248,7 +1248,7 @@ let universe = {};
 
 let searchTerm = '';
 let somenteDM = false;
-const DM_RECURSOS = /motoniveladora|trator de pneu/i;
+const DM_RECURSOS = /motoniveladora|trator de pneu|trator de esteira/i;   // igual ao PBI: tratores de pneu E de esteira
 const DM_PA_CARREG = /p[áa] carregadeira/i;
 const DM_KIT_MANDAL = /kit mandal/i;
 function isDM(r){ var rec=String(r[IDX.rec]||''); return DM_RECURSOS.test(rec)||(DM_PA_CARREG.test(rec)&&!DM_KIT_MANDAL.test(rec)); }
