@@ -555,6 +555,20 @@ def atualizar():
 
 @app.route("/pdf-parametros", methods=["POST"])
 def pdf_parametros():
+    """Envolve a rotina: qualquer falha volta em JSON com o motivo (nunca página HTML de 500)."""
+    import traceback
+    etapa = {"nome": "início"}
+    try:
+        return _pdf_parametros(etapa)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(tb, flush=True)
+        log(f"ERRO no PDF (etapa: {etapa['nome']}): {type(e).__name__}: {str(e)[:200]}")
+        return jsonify({"erro": f"Falha ao processar os PDFs na etapa '{etapa['nome']}': "
+                                f"{type(e).__name__}: {str(e)[:200]}. Veja o log do Render."}), 500
+
+
+def _pdf_parametros(etapa):
     """
     Recebe os PDFs diários (campo multipart 'pdfs', 1 ou mais) e:
       - lê META, Dias Úteis e Dias Trabalhados de cada PDF;
@@ -572,6 +586,7 @@ def pdf_parametros():
     if gravar and not autorizado():
         return negar()
 
+    etapa["nome"] = "leitura dos PDFs"
     lidos, erros = [], []
     for f in arquivos:
         try:
@@ -589,16 +604,20 @@ def pdf_parametros():
     if not lidos:
         return jsonify({"erro": "Nenhum PDF válido.", "erros": erros}), 400
 
+    etapa["nome"] = "autenticação Google"
     token = get_access_token()
     if not token:
         return jsonify({"erro": "Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN)."}), 500
+    etapa["nome"] = "abrir planilha"
     pl = fat.Planilha(token)
 
+    etapa["nome"] = "planejar"
     try:
         plano, linha_total = fat.planejar(pl, lidos)
     except Exception as e:
         return jsonify({"erro": str(e)[:300], "erros": erros}), 400
 
+    etapa["nome"] = "soma da base (CDO_PRODUCAO)"
     api = None
     for it in plano:
         total, por_bol, tipo = fat.soma_base(pl, it["gn"], it["competencia"])
@@ -617,6 +636,7 @@ def pdf_parametros():
             except Exception as e:
                 it["divergencias"] = [{"erro": f"diagnóstico falhou: {str(e)[:200]}"}]
 
+    etapa["nome"] = "gravação na FATURAMENTO_COMPILADO"
     if gravar:
         fat.gravar(pl, plano, linha_total)
         def _antes(x):   # valores que estavam na planilha — permite desfazer pelo LOG
