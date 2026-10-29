@@ -20,6 +20,10 @@ estado = {
     "finalizado_em": None,
 }
 
+# processamento dos PDFs em segundo plano (o Cloudflare corta requisições com mais de 100 s)
+estado_pdf = {"rodando": False, "etapa": None, "resultado": None, "erro": None,
+              "iniciado_em": None, "finalizado_em": None}
+
 # =========================================================
 # API ProdControl (REST direto — substitui Playwright)
 # =========================================================
@@ -555,34 +559,34 @@ def atualizar():
 
 @app.route("/pdf-parametros", methods=["POST"])
 def pdf_parametros():
-    """Envolve a rotina: qualquer falha volta em JSON com o motivo (nunca página HTML de 500)."""
+    """
+    Recebe os PDFs diários (multipart: 'pdfs' repetido ou pdf0, pdf1...) e:
+      - lê META, Dias Úteis e Dias Trabalhados de cada PDF;
+      - grava F/M/N em FATURAMENTO_COMPILADO (só com gravar=1 e X-API-Key);
+      - confere o Fat. Total do PDF com a soma de CDO_PRODUCAO e, se divergir,
+        aponta boletim a boletim a diferença contra o ProdControl.
+    Com assincrono=1 responde 202 logo após ler os PDFs e processa em segundo plano
+    (acompanhar em GET /pdf-status). Sem ele, responde no fim (uso manual/testes).
+    Qualquer falha volta em JSON com a etapa (nunca página HTML de 500).
+    """
     import traceback
     etapa = {"nome": "início"}
     try:
         return _pdf_parametros(etapa)
     except Exception as e:
-        tb = traceback.format_exc()
-        print(tb, flush=True)
-        log(f"ERRO no PDF (etapa: {etapa['nome']}): {type(e).__name__}: {str(e)[:200]}")
+        print(traceback.format_exc(), flush=True)
         return jsonify({"erro": f"Falha ao processar os PDFs na etapa '{etapa['nome']}': "
                                 f"{type(e).__name__}: {str(e)[:200]}. Veja o log do Render."}), 500
 
 
 def _pdf_parametros(etapa):
-    """
-    Recebe os PDFs diários (campo multipart 'pdfs', 1 ou mais) e:
-      - lê META, Dias Úteis e Dias Trabalhados de cada PDF;
-      - confere o Fat. Total do PDF com a soma de CDO_PRODUCAO;
-      - se divergir, aponta boletim a boletim a diferença contra o ProdControl;
-      - grava F/M/N em FATURAMENTO_COMPILADO só se o form trouxer gravar=1.
-    """
     import faturamento as fat
 
-    # aceita 'pdfs' repetido (navegador) ou pdf0, pdf1... (Apps Script não repete nomes de campo)
     arquivos = [f for campo in request.files for f in request.files.getlist(campo)]
     if not arquivos:
         return jsonify({"erro": "Envie ao menos um PDF no campo 'pdfs'."}), 400
     gravar = str(request.form.get("gravar", "0")).lower() in ("1", "true", "sim")
+    assincrono = str(request.form.get("assincrono", "0")).lower() in ("1", "true", "sim")
     if gravar and not autorizado():
         return negar()
 
@@ -604,41 +608,60 @@ def _pdf_parametros(etapa):
     if not lidos:
         return jsonify({"erro": "Nenhum PDF válido.", "erros": erros}), 400
 
+    if not assincrono:
+        return jsonify(processar_pdfs(lidos, erros, gravar, etapa))
+
+    with _trava:
+        if estado_pdf["rodando"]:
+            return jsonify({"erro": "Já existem PDFs sendo processados. Aguarde terminar."}), 409
+        estado_pdf.update({"rodando": True, "etapa": {"nome": "na fila"}, "resultado": None, "erro": None,
+                           "iniciado_em": agora_ms().isoformat(), "finalizado_em": None})
+    threading.Thread(target=_pdf_thread, args=(lidos, erros, gravar), daemon=True).start()
+    return jsonify({"mensagem": "PDFs recebidos; processando. Consulte /pdf-status.",
+                    "arquivos": sorted(p["gn"] for p in lidos), "erros": erros}), 202
+
+
+def _pdf_thread(lidos, erros, gravar):
+    import traceback
+    etapa = estado_pdf["etapa"]
+    try:
+        estado_pdf["resultado"] = processar_pdfs(lidos, erros, gravar, etapa)
+    except Exception as e:
+        print(traceback.format_exc(), flush=True)
+        estado_pdf["erro"] = (f"Falha na etapa '{etapa['nome']}': {type(e).__name__}: {str(e)[:250]}")
+    finally:
+        estado_pdf["rodando"] = False
+        estado_pdf["finalizado_em"] = agora_ms().isoformat()
+
+
+def processar_pdfs(lidos, erros, gravar, etapa):
+    """Grava primeiro (rápido) e só depois faz o diagnóstico no ProdControl (lento)."""
+    import faturamento as fat
+
     etapa["nome"] = "autenticação Google"
     token = get_access_token()
     if not token:
-        return jsonify({"erro": "Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN)."}), 500
+        raise RuntimeError("Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN).")
     etapa["nome"] = "abrir planilha"
     pl = fat.Planilha(token)
 
-    etapa["nome"] = "planejar"
-    try:
-        plano, linha_total = fat.planejar(pl, lidos)
-    except Exception as e:
-        return jsonify({"erro": str(e)[:300], "erros": erros}), 400
+    etapa["nome"] = "localizar linhas na FATURAMENTO_COMPILADO"
+    plano, linha_total = fat.planejar(pl, lidos)
 
     etapa["nome"] = "soma da base (CDO_PRODUCAO)"
-    api = None
+    bases = {}
     for it in plano:
         total, por_bol, tipo = fat.soma_base(pl, it["gn"], it["competencia"])
+        bases[(it["gn"], it["competencia"])] = (por_bol, tipo)
         it["fat_base"] = total
         it["diferenca"] = round(total - it["fat_pdf"], 2)
         it["confere"] = abs(it["diferenca"]) <= fat.TOLERANCIA
         it["divergencias"] = []
-        if not it["confere"]:
-            try:
-                if api is None:
-                    api = ProdControlAPI()
-                    api.login()
-                ate = datetime.strptime(it["gerado_em"][:10], "%d/%m/%Y") - timedelta(days=1)
-                it["divergencias"] = fat.diagnosticar(api, it["gn"], it["fim_competencia"],
-                                                      por_bol, tipo, ate.strftime("%Y-%m-%d"))
-            except Exception as e:
-                it["divergencias"] = [{"erro": f"diagnóstico falhou: {str(e)[:200]}"}]
 
-    etapa["nome"] = "gravação na FATURAMENTO_COMPILADO"
     if gravar:
+        etapa["nome"] = "gravação na FATURAMENTO_COMPILADO"
         fat.gravar(pl, plano, linha_total)
+
         def _antes(x):   # valores que estavam na planilha — permite desfazer pelo LOG
             b = x.get("antes")
             return f" (antes F={b['F']} M={b['M']} N={b['N']})" if b else ""
@@ -648,7 +671,30 @@ def _pdf_parametros(etapa):
                            for x in plano)
         pl.log("PDF PARAMETROS", "OK" if all(x["confere"] for x in plano) else "DIVERGENCIA", resumo)
 
-    return jsonify({"gravado": gravar, "itens": plano, "erros": erros})
+    pendentes = [it for it in plano if not it["confere"]]
+    if pendentes:
+        etapa["nome"] = "diagnóstico das diferenças no ProdControl"
+        api = None
+        for it in pendentes:
+            try:
+                if api is None:
+                    api = ProdControlAPI()
+                    api.login()
+                por_bol, tipo = bases[(it["gn"], it["competencia"])]
+                ate = datetime.strptime(it["gerado_em"][:10], "%d/%m/%Y") - timedelta(days=1)
+                it["divergencias"] = fat.diagnosticar(api, it["gn"], it["fim_competencia"],
+                                                      por_bol, tipo, ate.strftime("%Y-%m-%d"))
+            except Exception as e:
+                it["divergencias"] = [{"erro": f"diagnóstico falhou: {str(e)[:200]}"}]
+    etapa["nome"] = "concluído"
+    return {"gravado": gravar, "itens": plano, "erros": erros}
+
+
+@app.route("/pdf-status", methods=["GET"])
+def pdf_status():
+    if not autorizado():
+        return negar()
+    return jsonify(estado_pdf)
 
 
 if __name__ == "__main__":
