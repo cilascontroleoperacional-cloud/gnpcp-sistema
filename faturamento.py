@@ -111,6 +111,58 @@ def ler_pdf(conteudo: bytes, nome=""):
     }
 
 
+def ler_texto(texto: str, nome=""):
+    """
+    Mesma leitura de ler_pdf(), mas a partir do TEXTO das 3 primeiras páginas, extraído no
+    navegador (pdf.js) — o app envia ~1 KB em vez de MBs de PDF. Páginas separadas por '\f'.
+    """
+    plano = re.sub(r"\s+", " ", texto).replace("; ", ";").replace(" ;", ";")
+    m = RE_LINHA.search(plano)
+    if not m:
+        raise ValueError(f"{nome}: linha de controle não encontrada no texto do PDF")
+    gerado_d, gerado_h, fim, gn, fat, meta, uteis, trab = m.groups()
+    cortada = plano[m.end():m.end() + 1] in ("…", ".") or trab.endswith((",", "."))
+    vis_u, vis_t = RE_DIAS_UTEIS.search(plano), RE_DIAS_TRAB.search(plano)
+    if vis_u:
+        uteis = vis_u.group(1)
+    if vis_t:
+        trab = vis_t.group(1)
+    elif cortada:
+        raise ValueError(f"{nome}: Dias Trabalhados cortado no PDF e não achado no cartão — confira o arquivo")
+    return {
+        "arquivo": nome,
+        "responsavel": _responsavel_do_texto(texto.split("\f")[0]),
+        "gerado_em": f"{gerado_d} {gerado_h}",
+        "fim_competencia": fim,
+        "competencia": label_competencia(fim),
+        "gn": gn,
+        "fat_pdf": round(_br(fat), 2),
+        "meta": round(_br(meta), 2),
+        "dias_uteis": round(_br(uteis), 2),
+        "dias_trabalhados": round(_br(trab), 2),
+    }
+
+
+def _responsavel_do_texto(pag1: str):
+    """Página 1 vem como bloco de rótulos ('COMPETÊNCIA:', 'CONTRATO:', 'RESPONSÁVEL:') e depois os valores na mesma ordem."""
+    linhas = [x.strip() for x in pag1.splitlines() if x.strip()]
+    for i, x in enumerate(linhas):
+        if x.upper().startswith("RESPONS") and x.endswith(":"):
+            ini = i
+            while ini > 0 and linhas[ini - 1].endswith(":"):
+                ini -= 1
+            fim = i
+            while fim + 1 < len(linhas) and linhas[fim + 1].endswith(":"):
+                fim += 1
+            pos = i - ini
+            valores = linhas[fim + 1:]
+            if pos < len(valores):
+                return re.sub(r"\s+", " ", valores[pos]).strip()
+        if x.upper().startswith("RESPONS") and ":" in x and not x.endswith(":"):
+            return x.split(":", 1)[1].strip()
+    return ""
+
+
 def ler_responsavel(conteudo: bytes):
     """
     Nome do responsável (cabeçalho 'RESPONSÁVEL:' da página 1) via pdftotext -layout

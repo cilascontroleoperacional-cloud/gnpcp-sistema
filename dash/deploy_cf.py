@@ -27,5 +27,8 @@ def deploy(var,name):
     # garante o endereço público <nome>.<subdominio>.workers.dev (idempotente; necessário para workers novos)
     r=requests.post(f'{API}/workers/scripts/{name}/subdomain',headers=H,json={'enabled':True,'previews_enabled':False})
     print('   workers.dev',r.status_code)
-for v,n in MAPA.items():
-    if os.path.exists(os.path.join(HERE,'out_base',v+'.html')): deploy(v,n)
+from concurrent.futures import ThreadPoolExecutor
+_alvos=[(v,n) for v,n in MAPA.items() if os.path.exists(os.path.join(HERE,'out_base',v+'.html'))]
+with ThreadPoolExecutor(max_workers=len(_alvos) or 1) as _ex:   # em paralelo: ~13 s -> ~4 s
+    for _f in [_ex.submit(deploy,v,n) for v,n in _alvos]:
+        _f.result()                                                # repassa qualquer erro

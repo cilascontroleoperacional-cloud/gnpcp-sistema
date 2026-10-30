@@ -32,4 +32,5 @@ jobs:
         env: { CF_API_TOKEN: "${{ secrets.CF_API_TOKEN }}", CF_ACCOUNT_ID: "${{ secrets.CF_ACCOUNT_ID }}" }
         run: python deploy_cf.py
       - uses: actions/upload-artifact@v4
+        if: failure()
         with: { name: dashboards-html, path: dash/out_base/*.html, retention-days: 7 }

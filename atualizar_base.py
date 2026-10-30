@@ -173,14 +173,18 @@ def paginar(api, path, params, limite=255):
 
 
 def coletar(api, contratos, ini_iso, fim_iso, log=print):
-    """Baixa cabeçalhos, máquinas e produção da janela. Lança erro se qualquer contrato falhar
-    (assim nunca se compara/apaga com dados incompletos)."""
+    """Baixa cabeçalhos, máquinas e produção da janela — os 6 contratos x 3 rotas em paralelo.
+    Lança erro se qualquer chamada falhar (assim nunca se compara/apaga com dados incompletos)."""
+    tarefas = [(c, rota) for c in contratos for rota in ("/odc", "/odc/machine", "/odc/production")]
+
+    def um(t):
+        c, rota = t
+        return paginar(api, rota, {"contractId": c["contractId"], "startDate": ini_iso, "endDate": fim_iso})
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        res = dict(zip(tarefas, ex.map(um, tarefas)))
     dados = {"odc": [], "maq": [], "prod": []}
     for c in contratos:
-        p = {"contractId": c["contractId"], "startDate": ini_iso, "endDate": fim_iso}
-        cab = paginar(api, "/odc", p)
-        maq = paginar(api, "/odc/machine", p)
-        prod = paginar(api, "/odc/production", p)
+        cab, maq, prod = res[(c, "/odc")], res[(c, "/odc/machine")], res[(c, "/odc/production")]
         for x in cab:
             x["_contrato_nome"] = c["nome"]
         dados["odc"] += cab
@@ -791,16 +795,27 @@ def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None)
     return relatorio
 
 
-def buscar_formacoes(api, ids, workers=4):
+_CACHE_PF = {}            # id -> (momento, formação) — formação de preço quase nunca muda
+CACHE_PF_S = 6 * 3600     # revalida a cada 6 h (e sempre que o servidor reinicia)
+
+
+def buscar_formacoes(api, ids, workers=8):
     """Composição completa (máquinas, implementos, veículos e mão de obra) de cada formação de preço.
-    /odc/production só traz a mão de obra; a máquina precisa desta rota."""
+    /odc/production só traz a mão de obra; a máquina precisa desta rota. Usa cache em memória."""
+    agora = time.time()
+    faltam = [i for i in set(ids) if i not in _CACHE_PF or agora - _CACHE_PF[i][0] > CACHE_PF_S]
+
     def um(i):
         try:
             return i, api.get(f"/prices-formation/{i}")
         except Exception:
             return i, {}
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        return {i: pf for i, pf in ex.map(um, ids) if pf}
+    if faltam:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            for i, pf in ex.map(um, faltam):
+                if pf:
+                    _CACHE_PF[i] = (agora, pf)
+    return {i: _CACHE_PF[i][1] for i in ids if i in _CACHE_PF}
 
 
 def acompanhar_publicacao(token_github, inicio_utc, repo="cilascontroleoperacional-cloud/gnpcp-sistema",

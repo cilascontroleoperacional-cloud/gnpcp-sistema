@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import threading
 import re
@@ -499,31 +500,17 @@ def extrair():
 
 
 def atualizar_thread(dias, gravar, dashboards):
-    import atualizar_base as ab
+    """Botão 'Atualizar Dashboards': ProdControl -> base -> publicação (estado já reservado)."""
     try:
         api = ProdControlAPI()
         api.login()
         token = get_access_token()
         if not token:
             raise RuntimeError("Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN).")
-        rel = ab.atualizar(api, ab.Base(token), CONTRATOS, dias=dias, gravar=gravar, log=log)
+        rel = atualizar_base_agora(api, token, dias, gravar)
+        estado["resultado"] = rel
         if gravar and dashboards:
-            gh = os.environ.get("GITHUB_TOKEN")
-            if not gh:
-                log("GITHUB_TOKEN não configurado — dashboards NÃO foram atualizados.")
-                rel["dashboards"] = "sem GITHUB_TOKEN"
-            else:
-                inicio = datetime.utcnow()
-                ab.disparar_dashboards(gh)
-                log("Publicando dashboards (GitHub Actions, ~2 min)...")
-                rel["dashboards"] = "disparado"
-                estado["resultado"] = rel
-                pub = ab.acompanhar_publicacao(gh, inicio)
-                rel["publicacao"] = pub
-                log({"sucesso": "Dashboards publicados com sucesso.",
-                     "falha": "A publicação dos dashboards FALHOU — veja o link do GitHub.",
-                     "tempo esgotado": "Publicação ainda em andamento após 8 min — confira no GitHub."}
-                    .get(pub.get("situacao"), str(pub)))
+            publicar_dashboards(rel)
         estado["resultado"] = rel
     except Exception as e:
         log(f"ERRO: {e}")
@@ -531,6 +518,33 @@ def atualizar_thread(dias, gravar, dashboards):
     finally:
         estado["rodando"] = False
         estado["finalizado_em"] = agora_ms().isoformat()
+
+
+def atualizar_base_agora(api, token, dias=30, gravar=True):
+    import atualizar_base as ab
+    return ab.atualizar(api, ab.Base(token), CONTRATOS, dias=dias, gravar=gravar, log=log)
+
+
+def publicar_dashboards(rel, esperar=True):
+    """Dispara o GitHub Actions; com esperar=True acompanha até publicar (até 8 min)."""
+    import atualizar_base as ab
+    gh = os.environ.get("GITHUB_TOKEN")
+    if not gh:
+        log("GITHUB_TOKEN não configurado — dashboards NÃO foram atualizados.")
+        rel["dashboards"] = "sem GITHUB_TOKEN"
+        return
+    inicio = datetime.utcnow()
+    ab.disparar_dashboards(gh)
+    log("Publicando dashboards (GitHub Actions, ~1 min)...")
+    rel["dashboards"] = "disparado"
+    if not esperar:
+        return
+    pub = ab.acompanhar_publicacao(gh, inicio, intervalo_s=5)
+    rel["publicacao"] = pub
+    log({"sucesso": "Dashboards publicados com sucesso.",
+         "falha": "A publicação dos dashboards FALHOU — veja o link do GitHub.",
+         "tempo esgotado": "Publicação ainda em andamento após 8 min — confira no GitHub."}
+        .get(pub.get("situacao"), str(pub)))
 
 
 @app.route("/atualizar", methods=["POST"])
@@ -583,7 +597,11 @@ def _pdf_parametros(etapa):
     import faturamento as fat
 
     arquivos = [f for campo in request.files for f in request.files.getlist(campo)]
-    if not arquivos:
+    try:   # texto das 3 primeiras páginas, extraído no navegador: [{"nome": ..., "texto": ...}]
+        textos = json.loads(request.form.get("textos") or "[]")
+    except ValueError:
+        return jsonify({"erro": "Campo 'textos' inválido."}), 400
+    if not arquivos and not textos:
         return jsonify({"erro": "Envie ao menos um PDF no campo 'pdfs'."}), 400
     gravar = str(request.form.get("gravar", "0")).lower() in ("1", "true", "sim")
     assincrono = str(request.form.get("assincrono", "0")).lower() in ("1", "true", "sim")
@@ -597,6 +615,12 @@ def _pdf_parametros(etapa):
             lidos.append(fat.ler_pdf(f.read(), f.filename))
         except Exception as e:
             erros.append({"arquivo": f.filename, "erro": str(e)[:200]})
+    for t in textos:
+        nome = str(t.get("nome") or "pdf")
+        try:
+            lidos.append(fat.ler_texto(str(t.get("texto") or ""), nome))
+        except Exception as e:
+            erros.append({"arquivo": nome, "erro": str(e)[:200]})
     # mesmo GN + competência enviado 2x: vale o PDF gerado por último
     unicos = {}
     for p in lidos:
@@ -616,25 +640,82 @@ def _pdf_parametros(etapa):
             return jsonify({"erro": "Já existem PDFs sendo processados. Aguarde terminar."}), 409
         estado_pdf.update({"rodando": True, "etapa": {"nome": "na fila"}, "resultado": None, "erro": None,
                            "iniciado_em": agora_ms().isoformat(), "finalizado_em": None})
-    threading.Thread(target=_pdf_thread, args=(lidos, erros, gravar), daemon=True).start()
+    completo = str(request.form.get("completo", "0")).lower() in ("1", "true", "sim")
+    threading.Thread(target=_pdf_thread, args=(lidos, erros, gravar, completo), daemon=True).start()
     return jsonify({"mensagem": "PDFs recebidos; processando. Consulte /pdf-status.",
                     "arquivos": sorted(p["gn"] for p in lidos), "erros": erros}), 202
 
 
-def _pdf_thread(lidos, erros, gravar):
+def _pdf_thread(lidos, erros, gravar, completo=False):
+    """
+    completo=True (botão 'Enviar PDFs' do app): 1) atualiza a base com o ProdControl, 2) grava
+    META/Dias e confere com o PDF, 3) dispara a publicação dos dashboards (sem esperar).
+    O resultado dos PDFs sai antes da publicação terminar.
+    """
     import traceback
     etapa = estado_pdf["etapa"]
+    api = None
+    reservou = False
     try:
-        estado_pdf["resultado"] = processar_pdfs(lidos, erros, gravar, etapa)
+        if completo and gravar:
+            etapa["nome"] = "atualizando a base com o ProdControl"
+            reservou = reservar_execucao()
+            if not reservou:      # alguém já clicou em Atualizar: espera terminar e usa a base fresca
+                etapa["nome"] = "aguardando a atualização em andamento"
+                limite = time.time() + 600
+                while estado["rodando"] and time.time() < limite:
+                    time.sleep(2)
+            else:
+                api = ProdControlAPI()
+                api.login()
+                token = get_access_token()
+                if not token:
+                    raise RuntimeError("Falha ao autenticar no Google (veja GOOGLE_REFRESH_TOKEN).")
+                estado["resultado"] = atualizar_base_agora(api, token, 30, True)
+        estado_pdf["resultado"] = processar_pdfs(lidos, erros, gravar, etapa, api)
+        estado_pdf["resultado"]["base"] = _resumo_base(estado["resultado"]) if reservou else None
     except Exception as e:
         print(traceback.format_exc(), flush=True)
         estado_pdf["erro"] = (f"Falha na etapa '{etapa['nome']}': {type(e).__name__}: {str(e)[:250]}")
+        if reservou:
+            estado["erro"] = estado_pdf["erro"]
     finally:
         estado_pdf["rodando"] = False
         estado_pdf["finalizado_em"] = agora_ms().isoformat()
+    # depois do resultado dos PDFs: publica (a tela de atualização acompanha)
+    try:
+        if completo and gravar and not estado_pdf["erro"]:
+            rel = estado["resultado"] if reservou and estado["resultado"] else {}
+            if not reservou:
+                with _trava:
+                    if estado["rodando"]:
+                        return
+                    estado.update({"rodando": True, "progresso": [], "resultado": None, "erro": None,
+                                   "iniciado_em": agora_ms().isoformat(), "finalizado_em": None})
+                    reservou = True
+                rel = {}
+            log("PDFs gravados e conferidos.")
+            publicar_dashboards(rel)
+            estado["resultado"] = rel or None
+    except Exception as e:
+        log(f"ERRO ao publicar: {e}")
+        estado["erro"] = str(e)[:500]
+    finally:
+        if reservou:
+            estado["rodando"] = False
+            estado["finalizado_em"] = agora_ms().isoformat()
 
 
-def processar_pdfs(lidos, erros, gravar, etapa):
+def _resumo_base(rel):
+    if not rel:
+        return None
+    m, p = rel.get("CDO_MAQUINAS") or {}, rel.get("CDO_PRODUCAO") or {}
+    return {"maq_novos": m.get("novos", 0), "maq_alterados": m.get("alterados", 0),
+            "prod_novos": p.get("novos", 0), "prod_alterados": p.get("alterados", 0),
+            "gravado": rel.get("gravado", False)}
+
+
+def processar_pdfs(lidos, erros, gravar, etapa, api=None):
     """Grava primeiro (rápido) e só depois faz o diagnóstico no ProdControl (lento)."""
     import faturamento as fat
 
@@ -674,7 +755,6 @@ def processar_pdfs(lidos, erros, gravar, etapa):
     pendentes = [it for it in plano if not it["confere"]]
     if pendentes:
         etapa["nome"] = "diagnóstico das diferenças no ProdControl"
-        api = None
         for it in pendentes:
             try:
                 if api is None:
