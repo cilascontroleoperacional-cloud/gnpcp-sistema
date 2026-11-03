@@ -175,16 +175,17 @@ def paginar(api, path, params, limite=255):
 def coletar(api, contratos, ini_iso, fim_iso, log=print):
     """Baixa cabeçalhos, máquinas e produção da janela — os 6 contratos x 3 rotas em paralelo.
     Lança erro se qualquer chamada falhar (assim nunca se compara/apaga com dados incompletos)."""
-    tarefas = [(c, rota) for c in contratos for rota in ("/odc", "/odc/machine", "/odc/production")]
+    rotas = ("/odc", "/odc/machine", "/odc/production")
+    tarefas = [(c["contractId"], rota) for c in contratos for rota in rotas]   # chave = texto (dict não serve de chave)
 
     def um(t):
-        c, rota = t
-        return paginar(api, rota, {"contractId": c["contractId"], "startDate": ini_iso, "endDate": fim_iso})
+        cid, rota = t
+        return paginar(api, rota, {"contractId": cid, "startDate": ini_iso, "endDate": fim_iso})
     with ThreadPoolExecutor(max_workers=6) as ex:
         res = dict(zip(tarefas, ex.map(um, tarefas)))
     dados = {"odc": [], "maq": [], "prod": []}
     for c in contratos:
-        cab, maq, prod = res[(c, "/odc")], res[(c, "/odc/machine")], res[(c, "/odc/production")]
+        cab, maq, prod = (res[(c["contractId"], r)] for r in rotas)
         for x in cab:
             x["_contrato_nome"] = c["nome"]
         dados["odc"] += cab
