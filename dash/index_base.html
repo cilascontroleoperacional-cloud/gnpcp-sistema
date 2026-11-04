@@ -2807,7 +2807,12 @@ function frRenderMov(){
     });
   }
 
-  var mv = FR4.mov.filter(function(m){ return ativos.has(m.cr); }).map(function(m){
+  var mv = FR4.mov.filter(function(m){
+    if(!ativos.has(m.cr)) return false;
+    // Competência única selecionada: CR sem linha no FATURAMENTO_COMPILADO e sem produção nela não aparece
+    if(!todasComp && soUmaComp && !(HIST_META[m.cr] && HIST_META[m.cr][compsAtivas[0]]) && !fatPorCR[m.cr]) return false;
+    return true;
+  }).map(function(m){
     if(!todasComp){
       var fatCalc = fatPorCR[m.cr] !== undefined ? fatPorCR[m.cr] : 0;
       // Usar meta histórica se disponível para a competência selecionada
@@ -2825,6 +2830,7 @@ function frRenderMov(){
       var pct_real, media, esperado, proj, restante, meta_ajust, pct_ritmo;
       var d_uteis = m.dias_uteis, d_trab = m.dias_trab, d_rest = m.dias_rest;
       if(hSel && (hSel.du || hSel.dtr)){ d_uteis = hSel.du || 0; d_trab = hSel.dtr || 0; d_rest = hSel.dr || 0; }
+      var gestorSel = (hSel && hSel.resp) ? hSel.resp : m.gestor;
       var isHist = !!hSel && !(d_rest > 0);
 
       pct_real = metaUsar > 0 ? fatCalc / metaUsar : 0;
@@ -2848,7 +2854,7 @@ function frRenderMov(){
         meta_ajust = d_rest > 0 ? restante / d_rest : 0;
         pct_ritmo  = metaUsar > 0 ? proj / metaUsar : 0;
       }
-      return Object.assign({}, m, {fat:fatCalc, meta:metaUsar, proj:proj,
+      return Object.assign({}, m, {gestor:gestorSel, fat:fatCalc, meta:metaUsar, proj:proj,
         pct_real:pct_real, restante:restante, media_dia:media,
         pct_ritmo:pct_ritmo, meta_ajust:meta_ajust, esperado:esperado,
         dias_uteis:d_uteis, dias_trab:d_trab, dias_rest:d_rest});

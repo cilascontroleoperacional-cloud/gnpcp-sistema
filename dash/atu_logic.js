@@ -173,6 +173,7 @@ function processFR4(wb){
     hist[gn][comp2].dtr   = dtr2;
     hist[gn][comp2].dr    = dr2;
     hist[gn][comp2].majst = majst2;
+    hist[gn][comp2].resp  = resp2;
     hist[gn][comp2].esper = esper2;
 
     // mov consolidado: usar fat/meta/dias SOMENTE da competência mais recente com meta > 0
@@ -193,6 +194,8 @@ function processFR4(wb){
       movByCR[gn].dias_rest=dr2;
       movByCR[gn].meta_ajust=majst2;
       movByCR[gn].esperado=esper2;
+      if(resp2)movByCR[gn].gestor=resp2;
+      if(ctr2)movByCR[gn].contrato=ctr2;
     }
   }
 
