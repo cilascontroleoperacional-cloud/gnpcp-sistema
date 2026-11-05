@@ -793,7 +793,117 @@ def atualizar(api, base, contratos, dias=30, gravar=False, log=print, hoje=None)
         log("Base atualizada (gravação atômica concluída).")
     elif gravar:
         log("Nada mudou na base — nenhuma gravação necessária.")
+    try:   # área dos talhões: nunca derruba a atualização principal
+        relatorio["talhoes"] = sincronizar_talhoes(api, base, gravar=gravar, log=log)
+    except Exception as e:
+        log(f"Talhões: falha ao buscar áreas no ProdControl ({type(e).__name__}: {str(e)[:200]})")
+        relatorio["talhoes"] = {"erro": str(e)[:300]}
     return relatorio
+
+
+# =============================================================== área dos talhões (CAD_TALHOES)
+def norm_talhao(v):
+    """Mesma chave nos dois lados: '0399' -> '399', 18.0 -> '18', ' 18a ' -> '18A'."""
+    if isinstance(v, float) and v == int(v):
+        v = int(v)
+    s = "" if v is None else str(v).strip().upper()
+    return str(int(s)) if re.fullmatch(r"\d+", s) else s
+
+
+def _area(v):
+    try:
+        a = float(str(v).replace(",", ".")) if isinstance(v, str) else float(v)
+    except (TypeError, ValueError):
+        return None
+    return round(a, 4) if a > 0 else None
+
+
+def sincronizar_talhoes(api, base, gravar=True, log=print, hoje=None):
+    """
+    Completa a CAD_TALHOES com a área do cadastro de talhões do ProdControl (/projects + /plots)
+    para todo talhão apontado em CDO_PRODUCAO (operação em HA) que ainda está sem área.
+    Nunca altera área existente (CDO×BMS e cadastro manual continuam valendo).
+    Linha nova: Origem = PRODCONTROL. Linha 'SEM ÁREA' que encontra área: E/F/I preenchidos.
+    """
+    hoje = hoje or agora_ms().date()
+    prod, cad = base.valores(["CDO_PRODUCAO!D6:R", "CAD_TALHOES!A2:I"])
+    # D=0 CR | O=11 Und | P=12 Cód. Projeto | Q=13 Projeto | R=14 Talhão
+    existentes = {}
+    for i, r in enumerate(cad):
+        r = list(r) + [""] * 9
+        k = (str(r[0]).strip(), norm_talhao(r[1]), norm_talhao(r[3]))
+        existentes[k] = (i + 2, _area(r[4]))
+    faltam, sem_projeto = {}, set()
+    for r in prod:
+        r = list(r) + [""] * 15
+        cr, und, cp, faz, tal = str(r[0]).strip(), str(r[11]).strip().upper(), r[12], r[13], r[14]
+        if not cr or und != "HA" or norm_talhao(tal) == "":
+            continue
+        if norm_talhao(cp) == "":
+            sem_projeto.add((cr, norm_talhao(tal)))
+            continue
+        k = (cr, norm_talhao(cp), norm_talhao(tal))
+        if k in existentes and existentes[k][1]:
+            continue
+        faltam.setdefault(k, str(faz).strip())
+    rel = {"sem_area_antes": len(faltam), "sem_cod_projeto": len(sem_projeto),
+           "preenchidos": [], "nao_encontrados": []}
+    if not faltam:
+        log("Talhões: todos os talhões apontados (HA) já têm área.")
+        return rel
+
+    projetos = paginar(api, "/projects", {})
+    talhoes = paginar(api, "/plots", {})
+    pid = {p.get("id"): p for p in projetos}
+    areas = {}
+    for t in talhoes:
+        pr = t.get("project")
+        pr = pid.get(pr) if isinstance(pr, str) else (pid.get((pr or {}).get("id")) or pr or {})
+        a = _area(t.get("area"))
+        if a:
+            areas[(norm_talhao(pr.get("code")), norm_talhao(t.get("name")))] = a
+    log(f"Talhões: ProdControl {len(projetos)} projetos / {len(talhoes)} talhões; "
+        f"{len(faltam)} talhões da base sem área")
+
+    sid = next(s["properties"]["sheetId"] for s in base.meta()["sheets"]
+               if s["properties"]["title"] == "CAD_TALHOES")
+    serial_hoje = (hoje - EPOCA).days
+    data_cel = {"userEnteredValue": {"numberValue": serial_hoje},
+                "userEnteredFormat": {"numberFormat": {"type": "DATE", "pattern": "dd/mm/yyyy"}}}
+    reqs, novas = [], []
+    for k in sorted(faltam):
+        cr, cp, tal = k
+        a = areas.get((cp, tal))
+        if not a:
+            rel["nao_encontrados"].append("|".join(k))
+            continue
+        rel["preenchidos"].append({"chave": "|".join(k), "area": a})
+        if k in existentes:                     # linha 'SEM ÁREA' já existe: completa E, F e I
+            lin = existentes[k][0] - 1
+            reqs.append({"updateCells": {
+                "start": {"sheetId": sid, "rowIndex": lin, "columnIndex": 4},
+                "rows": [{"values": [_celula(a), _celula("PRODCONTROL")]}], "fields": "userEnteredValue"}})
+            reqs.append({"updateCells": {
+                "start": {"sheetId": sid, "rowIndex": lin, "columnIndex": 8},
+                "rows": [{"values": [data_cel]}], "fields": "userEnteredValue,userEnteredFormat.numberFormat"}})
+        else:
+            novas.append([cr, cod(cp), faltam[k], tal, a, "PRODCONTROL", "", "", serial_hoje])
+    if novas:
+        def cel(j, v):
+            if j == 3:   # igual à CDO_PRODUCAO: '0399' -> 399 (número); '09-10' fica texto (não vira data)
+                return _celula(cod(v))
+            return data_cel if j == 8 else _celula(v)
+        reqs.append({"appendCells": {"sheetId": sid, "fields": "userEnteredValue,userEnteredFormat.numberFormat",
+                                     "rows": [{"values": [cel(j, v) for j, v in enumerate(r)]} for r in novas]}})
+    log(f"Talhões: {len(rel['preenchidos'])} com área encontrada no ProdControl "
+        f"({len(novas)} linhas novas) | {len(rel['nao_encontrados'])} sem cadastro no ProdControl")
+    if gravar and reqs:
+        base.batch(reqs)
+        registrar_log(base, "TALHÕES PRODCONTROL", "OK",
+                      f"{len(rel['preenchidos'])} áreas preenchidas ({len(novas)} novos talhões) | "
+                      f"{len(rel['nao_encontrados'])} sem cadastro no ProdControl")
+    rel["gravado"] = bool(gravar and reqs)
+    return rel
 
 
 _CACHE_PF = {}            # id -> (momento, formação) — formação de preço quase nunca muda
