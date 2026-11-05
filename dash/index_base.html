@@ -271,6 +271,12 @@ tbody tr:hover{background:rgba(46,95,163,.12);}
   padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.45); max-height:320px; overflow-y:auto;
 }
 .f-dropdown-panel.open{display:block;}
+.f-dropdown .f-sec-head{padding:9px 4px;}
+.f-sec-head .ttl-box{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.f-sec-head .dd-sel{font-size:11.5px; color:#8b93c7; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px;}
+.f-sec-head .dd-sel.parcial{color:#F5B041; font-weight:700;}
+/* lista abre embaixo do título, empurrando os demais filtros (não cobre nada) */
+.sidebar .f-dropdown-panel{position:static; margin:0 0 10px; box-shadow:none; max-height:300px;}
 .f-scroll-list{max-height:220px; overflow-y:auto;}
 
 /* ===== BARRA DE ABAS ===== */
@@ -828,27 +834,27 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   </div>
   <div class="sidebar-body" id="sidebarBody">
 
-    <div class="f-sec" data-sec="cr">
-      <div class="f-sec-head"><span class="ttl">CR</span><span class="meta"><span class="cnt" id="cnt-cr"></span></span></div>
-      <div class="f-sec-content">
+    <div class="f-sec f-dropdown" data-sec="cr">
+      <div class="f-sec-head" id="ddToggle-cr"><span class="ttl-box"><span class="ttl">CR</span><span class="dd-sel" id="sel-cr"></span></span><span class="meta"><span class="cnt" id="cnt-cr"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-dropdown-panel" id="ddPanel-cr">
         <div class="f-all" data-all="cr"><input type="checkbox" checked> Selecionar tudo</div>
-        <div id="list-cr"></div>
+        <div id="list-cr" class="f-scroll-list"></div>
       </div>
     </div>
 
-    <div class="f-sec" data-sec="ano">
-      <div class="f-sec-head"><span class="ttl">Ano</span><span class="meta"><span class="cnt" id="cnt-ano"></span></span></div>
-      <div class="f-sec-content">
+    <div class="f-sec f-dropdown" data-sec="ano">
+      <div class="f-sec-head" id="ddToggle-ano"><span class="ttl-box"><span class="ttl">Ano</span><span class="dd-sel" id="sel-ano"></span></span><span class="meta"><span class="cnt" id="cnt-ano"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-dropdown-panel" id="ddPanel-ano">
         <div class="f-all" data-all="ano"><input type="checkbox" checked> Selecionar tudo</div>
-        <div id="list-ano"></div>
+        <div id="list-ano" class="f-scroll-list"></div>
       </div>
     </div>
 
-    <div class="f-sec" data-sec="comp">
-      <div class="f-sec-head"><span class="ttl">Competência</span><span class="meta"><span class="cnt" id="cnt-comp"></span></span></div>
-      <div class="f-sec-content">
+    <div class="f-sec f-dropdown" data-sec="comp">
+      <div class="f-sec-head" id="ddToggle-comp"><span class="ttl-box"><span class="ttl">Competência</span><span class="dd-sel" id="sel-comp"></span></span><span class="meta"><span class="cnt" id="cnt-comp"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-dropdown-panel" id="ddPanel-comp">
         <div class="f-all" data-all="comp"><input type="checkbox" checked> Selecionar tudo</div>
-        <div id="list-comp"></div>
+        <div id="list-comp" class="f-scroll-list"></div>
       </div>
     </div>
 
@@ -869,7 +875,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </label>
 
     <div class="f-sec f-dropdown" data-sec="rec">
-      <div class="f-sec-head" id="ddToggle-rec"><span class="ttl">Recurso</span><span class="meta"><span class="cnt" id="cnt-rec"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-sec-head" id="ddToggle-rec"><span class="ttl-box"><span class="ttl">Recurso</span><span class="dd-sel" id="sel-rec"></span></span><span class="meta"><span class="cnt" id="cnt-rec"></span><span class="dd-arrow">▾</span></span></div>
       <div class="f-dropdown-panel" id="ddPanel-rec">
         <input type="text" class="f-sec-search" placeholder="Buscar recurso..." data-target="rec">
         <div class="f-all" data-all="rec"><input type="checkbox" checked> Selecionar tudo</div>
@@ -878,7 +884,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
 
     <div class="f-sec f-dropdown" data-sec="op">
-      <div class="f-sec-head" id="ddToggle-op"><span class="ttl">Operação</span><span class="meta"><span class="cnt" id="cnt-op"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-sec-head" id="ddToggle-op"><span class="ttl-box"><span class="ttl">Operação</span><span class="dd-sel" id="sel-op"></span></span><span class="meta"><span class="cnt" id="cnt-op"></span><span class="dd-arrow">▾</span></span></div>
       <div class="f-dropdown-panel" id="ddPanel-op">
         <input type="text" class="f-sec-search" placeholder="Buscar operação..." data-target="op">
         <div class="f-all" data-all="op"><input type="checkbox" checked> Selecionar tudo</div>
@@ -887,7 +893,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
 
     <div class="f-sec f-dropdown" data-sec="agr">
-      <div class="f-sec-head" id="ddToggle-agr"><span class="ttl">Agrupamento de Atividades</span><span class="meta"><span class="cnt" id="cnt-agr"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-sec-head" id="ddToggle-agr"><span class="ttl-box"><span class="ttl">Agrupamento de Atividades</span><span class="dd-sel" id="sel-agr"></span></span><span class="meta"><span class="cnt" id="cnt-agr"></span><span class="dd-arrow">▾</span></span></div>
       <div class="f-dropdown-panel" id="ddPanel-agr">
         <input type="text" class="f-sec-search" placeholder="Buscar agrupamento..." data-target="agr">
         <div class="f-all" data-all="agr"><input type="checkbox" checked> Selecionar tudo</div>
@@ -895,16 +901,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       </div>
     </div>
 
-    <div class="f-sec" data-sec="tpar">
-      <div class="f-sec-head"><span class="ttl">Tipo de Paralização</span><span class="meta"><span class="cnt" id="cnt-tpar"></span></span></div>
-      <div class="f-sec-content">
+    <div class="f-sec f-dropdown" data-sec="tpar">
+      <div class="f-sec-head" id="ddToggle-tpar"><span class="ttl-box"><span class="ttl">Tipo de Paralização</span><span class="dd-sel" id="sel-tpar"></span></span><span class="meta"><span class="cnt" id="cnt-tpar"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-dropdown-panel" id="ddPanel-tpar">
         <div class="f-all" data-all="tpar"><input type="checkbox" checked> Selecionar tudo</div>
-        <div id="list-tpar"></div>
+        <div id="list-tpar" class="f-scroll-list"></div>
       </div>
     </div>
 
     <div class="f-sec f-dropdown" data-sec="maq">
-      <div class="f-sec-head" id="ddToggle-maq"><span class="ttl">Máquina</span><span class="meta"><span class="cnt" id="cnt-maq"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-sec-head" id="ddToggle-maq"><span class="ttl-box"><span class="ttl">Máquina</span><span class="dd-sel" id="sel-maq"></span></span><span class="meta"><span class="cnt" id="cnt-maq"></span><span class="dd-arrow">▾</span></span></div>
       <div class="f-dropdown-panel" id="ddPanel-maq">
         <input type="text" class="f-sec-search" placeholder="Buscar máquina..." data-target="maq">
         <div class="f-all" data-all="maq"><input type="checkbox" checked> Selecionar tudo</div>
@@ -913,7 +919,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
 
     <div class="f-sec f-dropdown" data-sec="enc">
-      <div class="f-sec-head" id="ddToggle-enc"><span class="ttl">Encarregado</span><span class="meta"><span class="cnt" id="cnt-enc"></span><span class="dd-arrow">▾</span></span></div>
+      <div class="f-sec-head" id="ddToggle-enc"><span class="ttl-box"><span class="ttl">Encarregado</span><span class="dd-sel" id="sel-enc"></span></span><span class="meta"><span class="cnt" id="cnt-enc"></span><span class="dd-arrow">▾</span></span></div>
       <div class="f-dropdown-panel" id="ddPanel-enc">
         <input type="text" class="f-sec-search" placeholder="Buscar encarregado..." data-target="enc">
         <div class="f-all" data-all="enc"><input type="checkbox" checked> Selecionar tudo</div>
@@ -1242,7 +1248,7 @@ function palette(){
 // FILTER STATE — sidebar checkbox slicers (sempre visíveis)
 // =========================================================
 const FILTER_DIMS = ['cr','ano','comp','maq','rec','op','agr','tpar','enc'];
-const DROPDOWN_DIMS = ['maq','rec','op','agr','enc'];
+const DROPDOWN_DIMS = ['cr','ano','comp','tpar','maq','rec','op','agr','enc'];   // todos em lista suspensa
 const selected = {};
 let universe = {};
 
@@ -1310,6 +1316,14 @@ function updateCount(dim){
   if(!el) return;
   const n = selected[dim].size, tot = universe[dim].length;
   el.textContent = n===tot ? tot : `${n}/${tot}`;
+  // resumo da seleção no cabeçalho da lista suspensa
+  const sel = document.getElementById('sel-'+dim);
+  if(sel){
+    const vals = universe[dim].filter(v=>selected[dim].has(v));
+    sel.textContent = n===tot ? 'Todos' : n===0 ? 'Nenhum' : n<=2 ? vals.join(', ') : `${n} selecionados`;
+    sel.title = n===tot ? '' : vals.join(', ');
+    sel.classList.toggle('parcial', n!==tot);
+  }
 }
 
 function wireSelectAll(dim){
