@@ -130,7 +130,7 @@ const CSS = `
 #fupRoot .pill{display:inline-block;min-width:46px;padding:2px 8px;border-radius:10px;font-weight:700}
 #fupRoot .fup-leg{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#8AA0C0;margin:12px 0 0}
 #fupRoot .fup-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
-@media (max-width:760px){#fupRoot{padding:12px}#fupRoot .fup-ln{grid-template-columns:1fr;gap:4px}#fupRoot .fup-ln .vl{text-align:left}}
+@media (max-width:768px){#fupRoot{top:66px}#fupRoot select{max-width:100%;min-width:0!important}#fupRoot .fup-ctl label{max-width:100%}}@media (max-width:760px){#fupRoot{padding:12px}#fupRoot .fup-ln{grid-template-columns:1fr;gap:4px}#fupRoot .fup-ln .vl{text-align:left}}
 `;
 
 const JS = `
@@ -161,12 +161,13 @@ function preencher(){
   var MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   var comps=F.comp.slice().sort(function(a,b){var pa=a.split('-'),pb=b.split('-');return (pb[1]-pa[1])||(MES.indexOf(pb[0])-MES.indexOf(pa[0]));});
   $('fupComp').innerHTML='<option value="">Acumulado (todas)</option>'+comps.map(function(c){return '<option>'+c+'</option>';}).join('');
+  if(comps.length) $('fupComp').value=comps[0]; /* abre na competência mais recente */
   trocarCR();
 }
 function trocarCR(){
   var lst=fazendasDoCR($('fupCR').value).filter(temProd);
   lst.sort(function(a,b){return F.faz[a][2].localeCompare(F.faz[b][2]);});
-  $('fupFaz').innerHTML=lst.map(function(i){return '<option value="'+i+'">'+esc(F.faz[i][2])+'</option>';}).join('');
+  $('fupFaz').innerHTML=lst.map(function(i){return '<option value="'+i+'">'+esc(F.faz[i][2]||'(sem nome de fazenda)')+'</option>';}).join('');
   var rec=lst.slice().sort(function(a,b){return (F.faz[b][3]||'').localeCompare(F.faz[a][3]||'');})[0];
   if(rec!==undefined)$('fupFaz').value=rec;
   trocarFaz();

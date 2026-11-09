@@ -217,7 +217,7 @@ function processFR4(wb){
   var allComps=[]; hcrs.forEach(function(c){Object.keys(hist[c]).forEach(function(k){if(allComps.indexOf(k)<0)allComps.push(k);});});
   addLog('  '+mov.length+' contratos · competências no hist: '+(allComps.join(', ')||'nenhuma'));
 
-  var compAtual=dim.comp.length?dim.comp[dim.comp.length-1]:'N/D';
+  var compAtual=dim.comp.length?dim.comp.slice().sort(function(a,b){return compRank(a)-compRank(b);})[0]:'N/D'; /* competência mais recente */
   var NOMES={"GN1270":"GN1270 — LACAN","GN1400":"GN1400 — ARAUCO",
     "GN1410":"GN1410 — BRACELL MS","GN1420":"GN1420 — INNOVATECH",
     "GN1421":"GN1421 — INNOVATECH/COLPAR","GN1430":"GN1430 — EUCATEX"};
