@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<script>window.__MOBILE_RESUMO=false;/*__MR__*/if(window.__MOBILE_RESUMO)document.documentElement.classList.add("mob-resumo");</script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -254,6 +255,68 @@ tbody tr:hover{background:rgba(46,95,163,.12);}
 .paradas-table tbody tr:hover td{background:rgba(46,95,163,.10);}
 .paradas-table tbody tr:hover td.tp-total{background:rgba(243,156,18,.26);}
 .paradas-table tr.tp-footer td{background:var(--panel2); color:#fff; font-weight:800;}
+/* ===== MODO RESUMO NO CELULAR (variantes com mobileResumo, ex.: CR1421) ===== */
+.mr-only{display:none;}
+@media (max-width:760px){
+  html.mob-resumo #pcmMain > *:not(.kpi-grid):not(.mr-keep):not(.mr-only){display:none !important;}
+  html.mob-resumo #pcmMain > .mr-only{display:block; margin-bottom:14px;}
+  html.mob-resumo #kpiGrid .kpi:nth-child(n+4){display:none;}          /* horas vão para o quadro "Totais de horas" */
+  html.mob-resumo #kpiGrid{grid-template-columns:repeat(3,1fr) !important; gap:8px;}
+  html.mob-resumo #kpiGrid .kpi{padding:10px 10px;}
+  html.mob-resumo #kpiGrid .kpi .lbl{font-size:9.5px; letter-spacing:.3px;}
+  html.mob-resumo #kpiGrid .kpi .val{font-size:24px;}
+  html.mob-resumo #kpiGrid .kpi .sub{font-size:10.5px;}
+  html.mob-resumo .search-topbar{display:none;}
+  html.mob-resumo .mr-keep .panel{margin-bottom:14px;}
+  html.mob-resumo .mr-keep .chart-wrap{height:210px; min-height:210px;}
+}
+.mr-horas{display:grid; grid-template-columns:repeat(2,1fr); gap:8px;}
+.mr-horas .h{background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:10px; padding:9px 11px;}
+.mr-horas .h .l{font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--text2);}
+.mr-horas .h .v{font-size:18px; font-weight:800; color:var(--text); margin-top:2px;}
+.mr-horas .h .p{font-size:11px; color:var(--text2);}
+.mr-horas .h.dest{grid-column:1 / -1;}
+.mr-horas .h.mec .v{color:#E74C3C;} .mr-horas .h.ope .v{color:#F39C12;} .mr-horas .h.dis .v{color:#5DADE2;} .mr-horas .h.trab .v{color:#27AE60;}
+.mr-tab-wrap{overflow-x:auto;}
+.mr-tab{width:100%; border-collapse:collapse; font-size:12.5px;}
+.mr-tab th{position:sticky; top:0; background:var(--panel2); color:#fff; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; padding:8px 6px; text-align:right;}
+.mr-tab th:first-child, .mr-tab td:first-child{text-align:left;}
+.mr-tab td{padding:7px 6px; border-bottom:1px solid var(--border); text-align:right; color:var(--text); font-variant-numeric:tabular-nums;}
+.mr-tab tr.maq td{background:rgba(255,255,255,.05); font-weight:800;}
+.mr-tab tr.maq td .rec{display:block; font-weight:500; font-size:11px; color:var(--text2);}
+.mr-tab tr.mot td:first-child{padding-left:16px; color:var(--text2); white-space:normal;}
+.mr-tab td.mec{color:#E74C3C; font-weight:700;} .mr-tab td.ope{color:#F39C12;} .mr-tab td.dis{color:#5DADE2;}
+.mr-tab tr.tot td{background:var(--panel2); color:#fff; font-weight:800;}
+.mr-tab .vazio{color:#27AE60; text-align:left; padding:10px 6px;}
+
+/* ===================== MOBILE (≤760px) — 10/11/2026 ===================== */
+.f-dm-toggle{display:flex; gap:10px; align-items:flex-start; padding:12px 4px; margin:2px 0 6px; cursor:pointer;
+  border-top:1px solid rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.06);}
+.f-dm-toggle input{width:18px; height:18px; margin-top:1px; accent-color:#F39C12; flex-shrink:0;}
+.f-dm-toggle .dm-ttl{display:block; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:#fff;}
+.f-dm-toggle .dm-sub{display:block; font-size:11.5px; color:#8b93c7; margin-top:2px;}
+.sidebar-toggle .st-txt{display:none;}
+@media (max-width:760px){
+  /* botão de filtros: diz o que está filtrado */
+  .sidebar-toggle{display:flex !important; align-items:center; gap:8px; width:100%; min-height:44px; padding:8px 12px !important;}
+  .sidebar-toggle .st-txt{display:flex; flex-direction:column; align-items:flex-start; min-width:0; text-align:left; line-height:1.2;}
+  .sidebar-toggle .st-txt b{font-size:13px;}
+  .sidebar-toggle .st-txt small{font-size:11.5px; color:#F5B041; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70vw;}
+  /* período: uma data por linha (não estoura a gaveta) */
+  .f-date-row{display:grid !important; grid-template-columns:1fr !important; gap:8px;}
+  .f-date-row input{width:100% !important; min-height:40px; font-size:15px;}
+  /* Tipos de Paradas: 1ª coluna fixa e estreita, meses rolam ao lado */
+  .paradas-table thead th:first-child, .paradas-table tbody td.tp-label, .paradas-table tr.tp-footer td:first-child{
+    position:sticky; left:0; z-index:2; background:var(--panel2); white-space:normal; min-width:128px; max-width:150px; font-size:11.5px; line-height:1.25;}
+  .paradas-table tbody td.tp-label{background:var(--panel);}
+  .paradas-table thead th, .paradas-table tbody td{padding:7px 8px;}
+  /* Paradas Mecânicas: motivo com reticências, não cortado no meio da letra */
+  #maqParadasTable td:last-child, #maqParadasTable th:last-child{max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  /* alvos de toque mínimos */
+  select, .btn, button{min-height:36px;}
+  .pivot-kpi{min-width:0; overflow-wrap:anywhere;}
+}
+
 .paradas-table tr.tp-footer td.tp-total{background:var(--accent2); color:#1B2733;}
 .paradas-table td.tp-over{color:var(--bad); font-weight:800; background:rgba(231,76,60,.12);}
 .paradas-table td.tp-over-total{color:var(--bad) !important; background:rgba(231,76,60,.28) !important;}
@@ -1001,6 +1064,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   <div class="topbar">
     <button class="btn sidebar-toggle" id="sidebarToggle" style="padding:8px 10px;flex-shrink:0;" title="Abrir/fechar filtros">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        <span class="st-txt"><b>Filtros</b><small id="stResumo">carregando…</small></span>
       </button>
       <div class="brand">
       <img id="pcmLogoTop" style="width:34px;height:34px;border-radius:6px;" alt="GN">
@@ -1025,10 +1089,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
   </div>
 
-  <div class="main">
+  <div class="main" id="pcmMain">
 
     <!-- KPI CARDS -->
     <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="mr-only panel" id="mrHorasBox">
+      <h3>Totais de horas <span class="tag" id="mrHorasTag"></span></h3>
+      <div class="mr-horas" id="mrHoras"></div>
+    </div>
 
     <!-- 1º TIPOS DE PARADAS (mês a mês) -->
     <div class="grid">
@@ -1095,7 +1163,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
 
     <!-- 4º EVOLUÇÃO DM / TU -->
-    <div class="grid">
+    <div class="grid mr-keep">
       <div class="panel c-6">
         <h3>Evolução DM <span class="tag">Por Competência</span></h3>
         <p class="cap">Disponibilidade Mecânica — meta 85% · sempre todas as competências</p>
@@ -1106,6 +1174,18 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <p class="cap">Taxa de Utilização — meta 71% · sempre todas as competências</p>
         <div class="chart-wrap"><canvas id="chartTU"></canvas></div>
       </div>
+    </div>
+
+    <!-- MODO RESUMO (celular, CR1421): paradas do dia anterior e resumo por máquina da competência -->
+    <div class="mr-only panel">
+      <h3>Paradas mecânicas <span class="tag" id="mrDiaTag"></span></h3>
+      <p class="cap" id="mrDiaCap">Todas as paradas mecânicas do último dia apontado</p>
+      <div class="mr-tab-wrap"><table class="mr-tab" id="mrDiaTab"></table></div>
+    </div>
+    <div class="mr-only panel">
+      <h3>Resumo por máquina <span class="tag" id="mrCompTag"></span></h3>
+      <p class="cap">Horas de parada por máquina na competência · maior → menor</p>
+      <div class="mr-tab-wrap"><table class="mr-tab" id="mrCompTab"></table></div>
     </div>
 
     <!-- Classificação de Horas -->
@@ -1559,13 +1639,109 @@ function syncDatesFromComp(){
   if(elF) elF.value = dataFim;
 }
 
+function atualizarPeriodoEResumo(){
+  var ds = FILTERED.map(function(r){return r[IDX.dt];}).filter(Boolean).sort();
+  var pl = document.getElementById('periodLbl');
+  if(pl && ds.length) pl.textContent = fmtDateBR(ds[0]) + ' a ' + fmtDateBR(ds[ds.length-1]);
+  var st = document.getElementById('stResumo');
+  if(st){
+    var partes = [];
+    ['cr','comp','rec','op','maq','enc','tpar','agr','ano'].forEach(function(d){
+      if(!selected[d] || !universe[d]) return;
+      var n = selected[d].size, t = universe[d].length;
+      if(n === t) return;
+      var vals = universe[d].filter(function(v){return selected[d].has(v);});
+      partes.push(n <= 2 ? vals.join(', ') : n + ' ' + ({cr:'CRs',comp:'competências',rec:'recursos',op:'operações',maq:'máquinas',enc:'encarregados',tpar:'tipos',agr:'agrupamentos',ano:'anos'}[d]));
+    });
+    var dm = document.getElementById('fSomenteDM'); if(dm && dm.checked) partes.push('só DM');
+    st.textContent = partes.length ? partes.join(' · ') : 'Todos os dados';
+  }
+}
+function MOBILE(){ return window.matchMedia && window.matchMedia('(max-width:760px)').matches; }
+// rótulo curto para eixos de gráfico (no celular o canvas cortava o começo do nome)
+function rotuloCurto(s, n, nMob){ s = String(s); var m = MOBILE() ? (nMob || 16) : n; return s.length > m ? s.slice(0, m - 1) + '…' : s; }
+
+
+function _mrEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function _mrH(v){ return (Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + 'h'; }
+function renderMobileResumo(){
+  if(!document.documentElement.classList.contains('mob-resumo')) return;
+  var rows = FILTERED;
+  var k = computeKPIs(rows);
+  var comps = [...new Set(rows.map(function(r){return r[IDX.comp2];}).filter(Boolean))];
+  var compTxt = comps.length===1 ? comps[0] : (comps.length ? comps.length + ' competências' : '—');
+  var pc = function(v){ return k.cal>0 ? Math.round(v/k.cal*100)+'%' : '—'; };
+  document.getElementById('mrHorasTag').textContent = compTxt;
+  document.getElementById('mrHoras').innerHTML =
+    '<div class="h dest"><div class="l">Horas disponíveis</div><div class="v">'+_mrH(k.cal)+'</div><div class="p">trabalhadas + paradas</div></div>'+
+    '<div class="h trab"><div class="l">Trabalhadas</div><div class="v">'+_mrH(k.htrab)+'</div><div class="p">'+pc(k.htrab)+' do disponível</div></div>'+
+    '<div class="h mec"><div class="l">Parada mecânica</div><div class="v">'+_mrH(k.pmec)+'</div><div class="p">'+pc(k.pmec)+'</div></div>'+
+    '<div class="h ope"><div class="l">Parada operacional</div><div class="v">'+_mrH(k.pope)+'</div><div class="p">'+pc(k.pope)+'</div></div>'+
+    '<div class="h dis"><div class="l">À disposição</div><div class="v">'+_mrH(k.pdisp)+'</div><div class="p">'+pc(k.pdisp)+'</div></div>';
+
+  // --- paradas mecânicas do dia anterior (último dia apontado no filtro): TODAS, por máquina e motivo
+  var datas = [...new Set(rows.map(function(r){return r[IDX.dt];}).filter(Boolean))].sort();
+  var dia = datas[datas.length-1];
+  var tabD = document.getElementById('mrDiaTab');
+  document.getElementById('mrDiaTag').textContent = dia ? fmtDateBR(dia) : '—';
+  var porMaq = {};
+  rows.forEach(function(r){
+    if(r[IDX.dt]!==dia || !(r[IDX.pmec]>0)) return;
+    var m = r[IDX.maq]||'N/D';
+    if(!porMaq[m]) porMaq[m] = {tot:0, rec:r[IDX.rec]||'', mot:{}};
+    porMaq[m].tot += r[IDX.pmec];
+    var mo = r[IDX.par]||'N/D';
+    porMaq[m].mot[mo] = (porMaq[m].mot[mo]||0) + r[IDX.pmec];
+  });
+  var maqs = Object.keys(porMaq).sort(function(a,b){return porMaq[b].tot-porMaq[a].tot;});
+  if(!maqs.length){
+    tabD.innerHTML = '<tr><td class="vazio">Nenhuma parada mecânica'+(dia?' em '+fmtDateBR(dia):'')+'.</td></tr>';
+  } else {
+    var totDia = maqs.reduce(function(a,m){return a+porMaq[m].tot;},0);
+    var h = '<thead><tr><th>Máquina / motivo</th><th>Horas</th></tr></thead><tbody>';
+    maqs.forEach(function(m){
+      var x = porMaq[m];
+      h += '<tr class="maq"><td>'+_mrEsc(m)+(x.rec?'<span class="rec">'+_mrEsc(x.rec)+'</span>':'')+'</td><td class="mec">'+_mrH(x.tot)+'</td></tr>';
+      Object.keys(x.mot).sort(function(a,b){return x.mot[b]-x.mot[a];}).forEach(function(mo){
+        h += '<tr class="mot"><td>'+_mrEsc(mo)+'</td><td>'+_mrH(x.mot[mo])+'</td></tr>';
+      });
+    });
+    h += '<tr class="tot"><td>Total · '+maqs.length+' máquina(s)</td><td>'+_mrH(totDia)+'</td></tr></tbody>';
+    tabD.innerHTML = h;
+  }
+
+  // --- resumo por máquina de todas as paradas da competência
+  document.getElementById('mrCompTag').textContent = compTxt;
+  var res = {};
+  rows.forEach(function(r){
+    if(!(r[IDX.hperd]>0)) return;
+    var m = r[IDX.maq]||'N/D';
+    if(!res[m]) res[m] = {mec:0, ope:0, dis:0, tot:0};
+    res[m].mec += r[IDX.pmec]||0; res[m].ope += r[IDX.pope]||0; res[m].dis += r[IDX.pdisp]||0; res[m].tot += r[IDX.hperd]||0;
+  });
+  var lista = Object.keys(res).sort(function(a,b){return res[b].tot-res[a].tot;});
+  var tabC = document.getElementById('mrCompTab');
+  if(!lista.length){ tabC.innerHTML = '<tr><td class="vazio">Nenhuma parada na competência.</td></tr>'; return; }
+  var t = {mec:0, ope:0, dis:0, tot:0};
+  var hc = '<thead><tr><th>Máquina</th><th>Mec.</th><th>Oper.</th><th>Disp.</th><th>Total</th></tr></thead><tbody>';
+  lista.forEach(function(m){
+    var x = res[m]; t.mec+=x.mec; t.ope+=x.ope; t.dis+=x.dis; t.tot+=x.tot;
+    var z = function(v){ return v>0 ? _mrH(v) : '<span style="opacity:.35">—</span>'; };
+    hc += '<tr><td>'+_mrEsc(m)+'</td><td class="mec">'+z(x.mec)+'</td><td class="ope">'+z(x.ope)+'</td><td class="dis">'+z(x.dis)+'</td><td><b>'+_mrH(x.tot)+'</b></td></tr>';
+  });
+  hc += '<tr class="tot"><td>Total · '+lista.length+'</td><td>'+_mrH(t.mec)+'</td><td>'+_mrH(t.ope)+'</td><td>'+_mrH(t.dis)+'</td><td>'+_mrH(t.tot)+'</td></tr></tbody>';
+  tabC.innerHTML = hc;
+}
+
 function applyFilters(){
   FILTERED = filterRows([], false);
   FILTERED_ALLCOMP = filterRows(['comp'], false);
   FILTERED_ALLMONTHS = filterRows(['comp'], true); // ignora comp E datas → sempre todos os meses
   document.getElementById('rowCountBadge').textContent = FILTERED.length.toLocaleString('pt-BR') + ' registros';
+  atualizarPeriodoEResumo();
   renderKPIs();
   renderAllCharts();
+  try{ renderMobileResumo(); }catch(e){ console.error('modo resumo', e); }
   renderTiposParadas();
   renderResumoMensal();
   renderPivot();
@@ -1701,14 +1877,14 @@ function renderParetoChart(){
     if(!k || k==='N/D' || k==='nan') return; // ignora linhas sem motivo
     map[k] = (map[k]||0) + r[IDX.hperd];
   });
-  let arr = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  let arr = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0, MOBILE() ? 8 : 10);
   const total = Object.values(map).reduce((a,b)=>a+b,0) || 1;
   let acc = 0;
   const cum = arr.map(([k,v])=>{ acc+=v; return +(acc/total*100).toFixed(1); });
   const p = palette();
   const ctx = document.getElementById('chartPareto');
   charts.pareto = new Chart(ctx, {
-    data:{ labels: arr.map(a=>a[0].length>18?a[0].slice(0,18)+'…':a[0]),
+    data:{ labels: arr.map(a=> rotuloCurto(a[0], 18, 12)),
       datasets:[
         {type:'bar', label:'Horas', data:arr.map(a=>+a[1].toFixed(1)), backgroundColor:p.accent, borderRadius:4, order:2, yAxisID:'y',
           datalabels:{ display:true, anchor:'end', align:'top', color:p.text, font:{size:9}, formatter:v=>num(v) }},
@@ -1837,7 +2013,7 @@ function renderRankingOpChart(){
   const ctx = document.getElementById('chartRankingOp');
   charts.rankingOp = new Chart(ctx, {
     type:'bar',
-    data:{ labels: arr.map(a=> a[0].length>32 ? a[0].slice(0,32)+'…' : a[0]),
+    data:{ labels: arr.map(a=> rotuloCurto(a[0], 32, 17)),
       datasets:[{ label:'Horas Perdidas', data: arr.map(a=>+a[1].toFixed(1)),
         backgroundColor: arr.map((_,i)=> i<3 ? p.bad : (i<7 ? p.accent2 : p.accent)),
         borderRadius:4,
@@ -1879,7 +2055,7 @@ function renderRankingEncChart(){
   const ctx = document.getElementById('chartRankingEnc');
   charts.rankingEnc = new Chart(ctx, {
     type:'bar',
-    data:{ labels: arr.map(a=> a[0].length>32 ? a[0].slice(0,32)+'…' : a[0]),
+    data:{ labels: arr.map(a=> rotuloCurto(a[0], 32, 17)),
       datasets:[{ label:'Horas Perdidas', data: arr.map(a=>+a[1].toFixed(1)),
         backgroundColor: arr.map((_,i)=> i<3 ? p.bad : (i<7 ? p.accent2 : p.accent)),
         borderRadius:4,
@@ -3604,7 +3780,7 @@ function frTogO(id, ev){
         </div>
         <div class="card" style="padding:9px 15px;">
           <div class="opt-row">
-            <label class="lbl-toggle"><input type="checkbox" id="chkLabels" checked onchange="frRenderEvo()"> Mostrar valor de todos os dias</label>
+            <label class="lbl-toggle"><input type="checkbox" id="chkLabels" checked onchange="frRenderEvo()"> Mostrar valor de todos os dias</label><script>if(window.matchMedia&&matchMedia('(max-width:760px)').matches){document.getElementById('chkLabels').checked=false;}</script>
             <label class="lbl-toggle"><input type="checkbox" id="chkBar" onchange="frRenderEvo()"> Exibir como colunas + linha de tendência</label>
             <span style="font-size:11px;color:var(--text2);">Padrão: linha com todos os valores diários. Marque as colunas se preferir barras.</span>
           </div>

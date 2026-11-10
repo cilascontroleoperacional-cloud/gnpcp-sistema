@@ -803,6 +803,7 @@ async function gerar(){
       // Injetar patch de Paradas APÓS aplicarExtras1421 para evitar que o corte do opacRoot remova o patch
       html=injetarPatchParadas(html);
       html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>'+v.titulo+'</title>');
+      if(v.mobileResumo) html=html.replace('window.__MOBILE_RESUMO=false;/*__MR__*/','window.__MOBILE_RESUMO=true;/*__MR__*/');   // celular: modo resumo
 
       var mb=Math.round(html.length/1048576*100)/100;
       addLog('  \u2713 '+v.pasta+' \u2014 '+mb+' MB');
