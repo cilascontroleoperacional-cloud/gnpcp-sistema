@@ -37,7 +37,7 @@ CR_CONTRATO = {   # CR -> contractId no ProdControl
 
 RE_LINHA = re.compile(
     r"(\d{2}/\d{2}/\d{4})\s*(\d{2}:\d{2}:\d{2});(\d{2}/\d{2}/\d{4});(GN\d{4});"
-    r"([\d.,]+);([\d.,]+);([\d.,]+);([\d.,]+)")
+    r"([\d.,]+);([\d.,]+);([\d.,]+)(?:;([\d.,]*))?")
 
 # Cartão visível do PDF ("23,51 Dias Úteis", "6,51 Dias Trabalhados"). A linha de controle
 # às vezes vem CORTADA pelo Power BI ("...;23,51;6,…"), então os dias saem do cartão.
@@ -89,7 +89,9 @@ def ler_pdf(conteudo: bytes, nome=""):
     if not m:
         raise ValueError(f"{nome}: linha de controle não encontrada no PDF")
     gerado_d, gerado_h, fim, gn, fat, meta, uteis, trab = m.groups()
-    cortada = plano[m.end():m.end() + 1] in ("…", ".") or trab.endswith((",", "."))
+    trab = trab or ""
+    cortada = (not trab or plano[m.end():m.end() + 1] in ("…", ".")
+               or trab.endswith((",", ".")))
     vis_u, vis_t = RE_DIAS_UTEIS.search(plano), RE_DIAS_TRAB.search(plano)
     if vis_u:
         uteis = vis_u.group(1)
@@ -121,7 +123,9 @@ def ler_texto(texto: str, nome=""):
     if not m:
         raise ValueError(f"{nome}: linha de controle não encontrada no texto do PDF")
     gerado_d, gerado_h, fim, gn, fat, meta, uteis, trab = m.groups()
-    cortada = plano[m.end():m.end() + 1] in ("…", ".") or trab.endswith((",", "."))
+    trab = trab or ""
+    cortada = (not trab or plano[m.end():m.end() + 1] in ("…", ".")
+               or trab.endswith((",", ".")))
     vis_u, vis_t = RE_DIAS_UTEIS.search(plano), RE_DIAS_TRAB.search(plano)
     if vis_u:
         uteis = vis_u.group(1)
