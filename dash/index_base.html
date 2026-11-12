@@ -887,6 +887,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <style id="gn-mobile">
 /* ===== MOBILE (≤768px) — layout em cards, abas fixas, filtros rápidos ===== */
 #movCards,#frQuick{display:none;}
+/* abas no estilo do celular também no computador: ícone em cima, nome curto, largura igual */
+.dash-tab{flex:1 1 0;justify-content:center;flex-direction:column;gap:3px;padding:10px 8px 9px;font-size:13.5px;white-space:nowrap;}
+.dash-tab .tl-ic{font-size:21px;line-height:1;}
 @media (max-width:960px){
   .dash-tabs{margin-left:0!important;}
   .frsb{position:fixed!important;left:0;top:0;bottom:0;z-index:300;transform:translateX(-100%);max-height:100vh;}
@@ -1315,14 +1318,14 @@ const IDX = {}; COLS.forEach((c,i)=>IDX[c]=i);
 
 const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 /* comp2 vem como 'Julho-26' → ordena por (ano, mês). Aceita também só 'Julho'. */
-(function(){ /* abas: ícone + nome curto no celular */
+(function(){ /* abas: ícone + nome curto (celular e computador); nome completo no title */
   var CURTO=[[/Mecanizados/,'Máquinas'],[/Faturamento/,'Faturamento'],[/Opera/,'Operações'],[/Avan/,'Talhões']];
   function ajusta(){
-    var mob=window.matchMedia('(max-width:768px)').matches;
     document.querySelectorAll('.dash-tab').forEach(function(t){
       if(!t.dataset.full) t.dataset.full=t.innerHTML;
-      if(!mob){ t.innerHTML=t.dataset.full; return; }
+      if(t.querySelector('.tl-ic')) return;
       var txt=t.textContent.trim(), m=txt.match(/^(\S+)\s+(.*)$/), ic=m?m[1]:'', nome=m?m[2]:txt;
+      t.title=nome;
       CURTO.forEach(function(c){ if(c[0].test(nome)) nome=c[1]; });
       t.innerHTML='<span class="tl-ic">'+ic+'</span><span>'+nome+'</span>';
     });
@@ -2775,6 +2778,11 @@ document.getElementById('resumoTopN').addEventListener('change', e=>{
 initFilters();
 pcmCompPadrao();
 applyFilters();
+(function(){ /* celular do CR1421 (modo resumo): já abre com "Somente máquinas DM" ligado */
+  if(!document.documentElement.classList.contains('mob-resumo') || !MOBILE()) return;
+  var dm=document.getElementById('fSomenteDM');
+  if(dm && !dm.checked){ dm.checked=true; dm.dispatchEvent(new Event('change')); }
+})();
 
 /* logo da topbar dos Mecanizados = mesma da sidebar (igual à aba Faturamento) */
 (function(){
