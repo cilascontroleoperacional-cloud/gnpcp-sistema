@@ -335,7 +335,7 @@ table.tab-pdf{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:14
       <div class="card">
         <div class="card-titulo">🔎 Conferir CDOs do ProdControl</div>
         <div class="card-sub">Confere os CDOs do dia: horas por função em 100%, colaboradores e equipamentos da turma
-          apontados, horas de máquinas × operadores e motorista sem veículo. A conferência só lê; nada é alterado
+          apontados, máquinas × produção por talhão, horímetros e motorista sem veículo. A primeira conferência do dia grava a nota de cada encarregado no ranking (rode antes de corrigir). Nada é alterado
           no ProdControl sem você marcar e aplicar.</div>
         <div class="cdo-filtros">
           <div><label for="cdo-data">Data do CDO</label><input type="date" id="cdo-data"></div>
@@ -829,7 +829,7 @@ function limparStatus() {
 // ── CONFERIR CDOs ────────────────────────────────
 let CDO = { timer: null, carregou: false, confirma: false, falhas: 0, etapa: null };
 const NOME_REGRA = { R1: 'Horas da função', R2: 'Motorista sem veículo', R3: 'Mão de obra',
-                     R4: 'Equipamento', R5: 'Máquina × função' };
+                     R4: 'Equipamento', R5: 'Máquinas × produção', R6: 'Horímetro', R7: 'Produção zerada' };
 
 function trocarAba(nome) {
   document.querySelectorAll('.aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
@@ -929,6 +929,12 @@ function cdoDesenhar(det, aplicacao, finalizadoEm) {
     <div class="cdo-num alerta"><b>${R.revisar || 0}</b><span>para revisar</span></div></div>`;
   if (!cdos.length) h += `<div class="res-titulo ok">✅ Nenhuma divergência nos CDOs conferidos.</div>`;
   if (R.cdos_sem_cadastro) h += `<div class="cdo-aviso">⚠️ ${R.cdos_sem_cadastro} CDO(s) sem consulta ao cadastro da turma — conferência parcial neles.</div>`;
+  const K = R.ranking;
+  if (K) h += K.erro
+    ? `<div class="cdo-aviso">⚠️ Ranking de apontamentos não gravado: ${esc(K.erro)}</div>`
+    : `<div class="res-linha">🏅 Ranking de apontamentos: <b>${K.gravadas || 0}</b> nota(s) gravada(s)` +
+      (K.ja_existiam ? `, ${K.ja_existiam} já existia(m) (nota original mantida)` : '') +
+      ((K.sem_nota || []).length ? `, ${K.sem_nota.length} sem nota` : '') + `.</div>`;
 
   let contrato = null;
   cdos.forEach(c => {

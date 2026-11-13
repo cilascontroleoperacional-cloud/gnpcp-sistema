@@ -1,0 +1,9 @@
+{"index": [
+ ["R4: 'Equipamento', R5: 'Máquina × função' };", "R4: 'Equipamento', R5: 'Máquinas × produção', R6: 'Horímetro', R7: 'Produção zerada' };"],
+ ["  if (R.cdos_sem_cadastro) h += `<div class=\"cdo-aviso\">⚠️ ${R.cdos_sem_cadastro} CDO(s) sem consulta ao cadastro da turma — conferência parcial neles.</div>`;\n", "  if (R.cdos_sem_cadastro) h += `<div class=\"cdo-aviso\">⚠️ ${R.cdos_sem_cadastro} CDO(s) sem consulta ao cadastro da turma — conferência parcial neles.</div>`;\n  const K = R.ranking;\n  if (K) h += K.erro\n    ? `<div class=\"cdo-aviso\">⚠️ Ranking de apontamentos não gravado: ${esc(K.erro)}</div>`\n    : `<div class=\"res-linha\">🏅 Ranking de apontamentos: <b>${K.gravadas || 0}</b> nota(s) gravada(s)` +\n      (K.ja_existiam ? `, ${K.ja_existiam} já existia(m) (nota original mantida)` : '') +\n      ((K.sem_nota || []).length ? `, ${K.sem_nota.length} sem nota` : '') + `.</div>`;\n"],
+ ["A conferência só lê; nada é alterado", "A primeira conferência do dia grava a nota de cada encarregado no ranking (rode antes de corrigir). Nada é alterado"],
+ ["apontados, horas de máquinas × operadores e motorista sem veículo.", "apontados, máquinas × produção por talhão, horímetros e motorista sem veículo."]
+],
+"gs": [
+ ["delete a.presentes; delete a.ausentes; delete a.colaboradores; delete a.equipamentos;", "delete a.presentes; delete a.ausentes; delete a.colaboradores; delete a.equipamentos; delete a.itens;"]
+]}

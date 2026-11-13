@@ -18,10 +18,12 @@ def esperar(c):
 
 
 def test_fluxo_completo(monkeypatch):
-    api = Fake(com_ismael=True); api.login = lambda: None
+    api = Fake(cleiton_presente=True); api.login = lambda: None
     monkeypatch.setattr(servidor, "ProdControlAPI", lambda: api)
     logs = []
     monkeypatch.setattr(servidor, "_registrar_log_base", lambda *a: logs.append(a))
+    notas = []
+    monkeypatch.setattr(servidor, "_registrar_ranking", lambda det: notas.append(det["todos"]) or {"gravadas": 1})
     servidor.estado_cdo.update(deteccao=None, aplicacao=None, rodando=False)
     c = servidor.app.test_client()
 
@@ -35,6 +37,9 @@ def test_fluxo_completo(monkeypatch):
     assert c.post("/cdo/detectar", json={"data": "12/11/2026", "contratos": ["lacan"]}, headers=H).status_code == 200
     s = esperar(c)
     assert s["erro"] is None and s["deteccao"]["resumo"]["corrigir"] == 1
+    assert s["deteccao"]["resumo"]["ranking"] == {"gravadas": 1} and "todos" not in s["deteccao"]
+    assert len(notas) == 1 and notas[0][0]["regras"] == ["R2"]
+    assert len(notas) == 1
     ach = s["deteccao"]["cdos"][0]["achados"][0]
     assert s["deteccao"]["cdos"][0]["cdo"] == 53489 and ach["corpo"] == PAYLOAD_REAL
 
@@ -43,6 +48,9 @@ def test_fluxo_completo(monkeypatch):
     s = esperar(c)
     assert s["aplicacao"]["aplicados"] == 1 and len(api.puts) == 1 and len(logs) == 1
     assert api.puts[0][0] == "/odc/production/" + PAYLOAD_REAL["id"]
+    c.post("/cdo/detectar", json={"data": "12/11/2026", "contratos": ["LACAN"], "ranking": False}, headers=H)
+    s2 = esperar(c)                                                # ranking desligado: não chama a planilha
+    assert "ranking" not in s2["deteccao"]["resumo"] and s2["deteccao"]["cdos"] == [] and len(notas) == 1
 
 
 def test_data_padrao_e_ontem():

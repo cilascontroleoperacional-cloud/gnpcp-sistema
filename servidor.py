@@ -837,12 +837,30 @@ def _registrar_log_base(rotina, resultado, detalhe):
         _log_cdo(f"(LOG da base não gravado: {str(e)[:120]})")
 
 
-def _cdo_detectar_thread(contratos, ini, fim):
+def _registrar_ranking(det):
+    """Grava a nota do dia na planilha RANKING_APONTAMENTOS_2026 — melhor esforço."""
+    try:
+        import atualizar_base as ab
+        import ranking_cdo as rk
+        token = get_access_token()
+        if not token:
+            return {"erro": "sem acesso ao Google (GOOGLE_REFRESH_TOKEN)"}
+        return rk.registrar(ab.Base(token, sheet_id=rk.SHEET_ID), det, log=_log_cdo)
+    except Exception as e:
+        _log_cdo(f"  Ranking NÃO gravado: {str(e)[:200]}")
+        return {"erro": str(e)[:300]}
+
+
+def _cdo_detectar_thread(contratos, ini, fim, ranking=True):
     import correcao_cdo as cc
     try:
         api = ProdControlAPI()
         api.login()
-        estado_cdo["deteccao"] = cc.detectar(api, contratos, ini, fim, log=_log_cdo)
+        det = cc.detectar(api, contratos, ini, fim, log=_log_cdo)
+        if ranking:
+            det["resumo"]["ranking"] = _registrar_ranking(det)
+        det.pop("todos", None)          # só serve ao ranking; não precisa ir para a tela
+        estado_cdo["deteccao"] = det
         estado_cdo["aplicacao"] = None
     except Exception as e:
         _log_cdo(f"ERRO: {e}")
@@ -875,6 +893,8 @@ def cdo_detectar():
     Só LEITURA: confere os CDOs do período e lista divergências (não grava nada).
     Body JSON (opcional): {"data":"DD/MM/YYYY"} ou {"inicio":"..","fim":".."}; sem data = ontem.
     "contratos": ["LACAN", ...] limita aos contratos informados. Resultado em GET /cdo/status.
+    "ranking": false não grava a nota dos encarregados na planilha RANKING_APONTAMENTOS_2026
+    (por padrão grava as linhas de (data, encarregado) que ainda não existem lá).
     """
     if not autorizado():
         return negar()
@@ -892,7 +912,8 @@ def cdo_detectar():
                             "validos": [c["nome"] for c in CONTRATOS]}), 400
     if not _reservar_cdo("detectar"):
         return jsonify({"erro": "Já existe uma conferência/correção de CDO em andamento. Aguarde."}), 409
-    threading.Thread(target=_cdo_detectar_thread, args=(contratos, ini, fim), daemon=True).start()
+    ranking = bool(body.get("ranking", True))
+    threading.Thread(target=_cdo_detectar_thread, args=(contratos, ini, fim, ranking), daemon=True).start()
     return jsonify({"mensagem": f"Conferência iniciada ({ini} a {fim}). Consulte /cdo/status."})
 
 

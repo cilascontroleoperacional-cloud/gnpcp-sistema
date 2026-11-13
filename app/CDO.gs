@@ -52,7 +52,7 @@ function cdoStatus(token) {
     ((s.deteccao || {}).cdos || []).forEach(function (c) {
       (c.achados || []).forEach(function (a) {
         delete a.corpo; delete a.rota; delete a.metodo; delete a.linhas;
-        delete a.presentes; delete a.ausentes; delete a.colaboradores; delete a.equipamentos;
+        delete a.presentes; delete a.ausentes; delete a.colaboradores; delete a.equipamentos; delete a.itens;
       });
     });
     return {
