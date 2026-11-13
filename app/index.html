@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GN PCP — Dashboard</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<style>
+:root {
+  --azul:   #1F3864;
+  --azul2:  #2E75B6;
+  --azulc:  #DCE6F1;
+  --verde:  #1E8449;
+  --verd2:  #145A32;
+  --verm:   #C0392B;
+  --bg:     #EEF2F7;
+  --branco: #FFFFFF;
+  --texto:  #2C3E50;
+  --borda:  #C8D8EC;
+  --cinza:  #7F8C8D;
+  --sombra: 0 2px 14px rgba(31,56,100,.11);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--texto);min-height:100vh}
+
+ 
+#tela-login{display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:linear-gradient(140deg,var(--azul) 0%,var(--azul2) 100%)}
+.card-login{background:var(--branco);border-radius:18px;padding:48px 40px;width:370px;
+  box-shadow:0 10px 48px rgba(0,0,0,.28);text-align:center}
+.logo-box{width:68px;height:68px;background:var(--azul);border-radius:14px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:30px;margin-bottom:20px}
+.card-login h1{color:var(--azul);font-size:22px;font-weight:700;margin-bottom:4px}
+.card-login .sub{color:var(--cinza);font-size:13px;margin-bottom:30px}
+.campo{text-align:left;margin-bottom:16px}
+.campo label{display:block;font-size:11px;font-weight:700;color:var(--azul);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+.campo input{width:100%;padding:12px 14px;border:1.5px solid var(--borda);
+  border-radius:8px;font-size:14px;transition:border-color .2s;outline:none;color:var(--texto)}
+.campo input:focus{border-color:var(--azul2)}
+.btn-login{width:100%;padding:13px;background:var(--azul);color:#fff;border:none;
+  border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;
+  transition:background .2s,transform .1s;margin-top:4px}
+.btn-login:hover{background:var(--azul2)}
+.btn-login:active{transform:scale(.98)}
+.btn-login:disabled{opacity:.6;cursor:not-allowed}
+.msg-erro{background:#FDECEA;color:var(--verm);border-radius:7px;padding:10px 14px;
+  font-size:13px;margin-top:14px;display:none}
+
+ 
+#tela-app{display:none}
+header{background:var(--azul);color:#fff;padding:0 24px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.h-esq{display:flex;align-items:center;gap:10px}
+.h-esq .icone{font-size:20px}
+.h-esq h2{font-size:15px;font-weight:700;letter-spacing:.3px}
+.h-dir{display:flex;align-items:center;gap:14px}
+.info-usuario{font-size:12px;opacity:.8}
+.btn-sair{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28);
+  border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;transition:background .2s}
+.btn-sair:hover{background:rgba(255,255,255,.24)}
+
+ 
+.container{max-width:860px;margin:28px auto;padding:0 16px}
+
+ 
+.card{background:var(--branco);border-radius:12px;box-shadow:var(--sombra);
+  padding:24px;margin-bottom:16px}
+.card-titulo{font-size:15px;font-weight:700;color:var(--azul);
+  margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card-sub{font-size:12px;color:var(--cinza);margin-bottom:16px}
+
+ 
+.badge{background:var(--azulc);color:var(--azul);border-radius:7px;
+  padding:8px 12px;font-size:12px;margin-bottom:14px;line-height:1.5}
+.badge strong{font-weight:700}
+
+ 
+.upload-area{border:2px dashed var(--borda);border-radius:8px;padding:36px 20px;
+  text-align:center;cursor:pointer;transition:all .2s;background:#FAFBFC}
+.upload-area:hover,.upload-area.dragover{border-color:var(--azul2);background:var(--azulc)}
+.upload-area .upload-icone{font-size:34px;display:block;margin-bottom:10px}
+.upload-area p{font-size:14px;color:var(--cinza)}
+.upload-area p strong{color:var(--azul)}
+.upload-area input[type=file]{display:none}
+
+ 
+.btn-salvar{width:100%;padding:12px;background:var(--verde);color:#fff;
+  border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;
+  margin-top:14px;transition:background .2s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-salvar:hover{background:var(--verd2)}
+.btn-salvar:active{transform:scale(.99)}
+.btn-salvar:disabled{opacity:.6;cursor:not-allowed}
+
+ 
+.btn-atualizar{width:100%;padding:17px;background:var(--azul);color:#fff;
+  border:none;border-radius:12px;font-size:17px;font-weight:800;cursor:pointer;
+  transition:background .2s,transform .1s;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 4px 18px rgba(31,56,100,.28);letter-spacing:.3px}
+.btn-atualizar:hover{background:var(--azul2)}
+.btn-atualizar:active{transform:scale(.99)}
+.btn-atualizar:disabled{opacity:.6;cursor:not-allowed}
+.ultima-atualizacao{font-size:12px;color:var(--cinza);text-align:center;margin-top:8px}
+
+ 
+#status-bar{border-radius:10px;padding:14px 18px;font-size:13px;font-weight:600;
+  margin-top:0;display:none;align-items:center;gap:10px;margin-bottom:16px}
+#status-bar.ok{background:#E9F7EF;color:var(--verde);display:flex}
+#status-bar.erro{background:#FDECEA;color:var(--verm);display:flex}
+#status-bar.info{background:var(--azulc);color:var(--azul);display:flex}
+
+ 
+.spinner{width:15px;height:15px;border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+ 
+.divisor{height:1px;background:var(--borda);margin:20px 0}
+ 
+.andamento{display:none;margin-top:18px}
+.andamento.vis{display:block}
+.and-topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px}
+.and-topo .rel{font-family:'Consolas',monospace;font-size:20px;font-weight:700;color:var(--azul)}
+.etapas{display:flex;gap:0;margin-bottom:14px}
+.etapa{flex:1;text-align:center;position:relative;font-size:11.5px;color:var(--cinza);padding-top:34px}
+.etapa::before{content:attr(data-n);position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:26px;height:26px;border-radius:50%;background:#E3E9F1;color:var(--cinza);
+  font-weight:700;font-size:12px;line-height:26px;z-index:1}
+.etapa::after{content:'';position:absolute;top:12px;left:-50%;width:100%;height:3px;background:#E3E9F1}
+.etapa:first-child::after{display:none}
+.etapa.feita{color:var(--verde)}
+.etapa.feita::before{content:'✓';background:var(--verde);color:#fff}
+.etapa.feita::after,.etapa.atual::after{background:var(--verde)}
+.etapa.atual{color:var(--azul);font-weight:700}
+.etapa.atual::before{background:var(--azul2);color:#fff;animation:pulso 1.2s ease-in-out infinite}
+.etapa.falhou{color:var(--verm);font-weight:700}
+.etapa.falhou::before{content:'!';background:var(--verm);color:#fff}
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 rgba(46,117,182,.55)}50%{box-shadow:0 0 0 7px rgba(46,117,182,0)}}
+.barra{height:6px;background:#E3E9F1;border-radius:4px;overflow:hidden;margin-bottom:12px}
+.barra div{height:100%;width:0;background:linear-gradient(90deg,var(--azul2),var(--verde));transition:width .6s}
+.log-vivo{background:#0F1E36;color:#CFE0F5;font-family:'Consolas',monospace;font-size:11.5px;
+  border-radius:8px;padding:10px 12px;max-height:150px;overflow:auto;white-space:pre-wrap;line-height:1.55}
+
+ 
+.resultado{display:none;margin-top:16px;border:1.5px solid var(--borda);border-radius:10px;padding:16px}
+.resultado.vis{display:block}
+.res-titulo{font-weight:700;font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.res-titulo.ok{color:var(--verde)} .res-titulo.erro{color:var(--verm)} .res-titulo.aviso{color:#B9770E}
+.res-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.res-box{background:#F5F8FC;border-radius:8px;padding:10px 12px}
+.res-box h4{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--azul);margin-bottom:8px}
+.res-num{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+.res-num b{font-variant-numeric:tabular-nums}
+.res-linha{font-size:12.5px;margin-top:6px;color:var(--texto)}
+.res-linha a{color:var(--azul2);font-weight:600}
+.res-avisos{font-size:12px;color:#8E5B00;background:#FEF5E7;border-radius:7px;padding:8px 10px;margin-top:8px}
+
+ 
+.lista-pdf{margin-top:10px;font-size:12.5px}
+.lista-pdf div{padding:3px 0;color:var(--azul)}
+table.tab-pdf{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:14px}
+.tab-pdf th{background:var(--azul);color:#fff;padding:7px 8px;text-align:left;font-weight:600}
+.tab-pdf td{white-space:nowrap;padding:7px 8px;border-bottom:1px solid #E3E9F1;font-variant-numeric:tabular-nums}
+.tab-pdf tr:nth-child(even) td{background:var(--azulc)}
+.tag{display:inline-block;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700}
+.tag.ok{background:#E9F7EF;color:var(--verde)} .tag.div{background:#FDECEA;color:var(--verm)}
+.diverg{white-space:normal;min-width:180px;font-size:11.5px;color:var(--verm);margin-top:4px}
+
+@media (max-width:640px){
+  .res-grid{grid-template-columns:1fr}
+  .etapa{font-size:10px}
+  .card-login{width:92vw;padding:36px 22px}
+  .h-esq h2{font-size:13px}
+  header{padding:0 12px}
+  .info-usuario{display:none}
+  .card{padding:16px}
+}
+
+/* ── ABAS ── */
+.abas{max-width:860px;margin:18px auto 0;padding:0 16px;display:flex;gap:6px;border-bottom:2px solid var(--borda)}
+.aba{background:transparent;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;padding:11px 18px;
+  font-size:14px;font-weight:700;color:var(--cinza);cursor:pointer;border-radius:8px 8px 0 0;transition:background .15s}
+.aba:hover{background:var(--azulc);color:var(--azul)}
+.aba.ativa{color:var(--azul);border-bottom-color:var(--azul);background:var(--branco)}
+.abas + .container{margin-top:18px}
+
+/* ── CONFERIR CDOs ── */
+.cdo-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+.cdo-filtros label{display:block;font-size:11px;font-weight:700;color:var(--azul);margin-bottom:5px;
+  text-transform:uppercase;letter-spacing:.5px}
+.cdo-filtros input,.cdo-filtros select{padding:10px 12px;border:1.5px solid var(--borda);border-radius:8px;
+  font-size:14px;color:var(--texto);background:#fff;outline:none}
+.cdo-filtros input:focus,.cdo-filtros select:focus{border-color:var(--azul2)}
+.cdo-filtros .cresce{flex:1;min-width:150px}
+.cdo-filtros .cresce select{width:100%}
+.cdo-resumo{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:4px 0 14px}
+.cdo-num{background:#F5F8FC;border-radius:8px;padding:10px 12px;text-align:center}
+.cdo-num b{display:block;font-size:22px;color:var(--azul);font-variant-numeric:tabular-nums}
+.cdo-num span{font-size:11px;color:var(--cinza);text-transform:uppercase;letter-spacing:.4px}
+.cdo-num.alerta b{color:#B9770E} .cdo-num.pronto b{color:var(--verde)}
+.cdo-contrato{font-size:13px;font-weight:700;color:#fff;background:var(--azul);border-radius:8px;
+  padding:8px 12px;margin:16px 0 8px;display:flex;justify-content:space-between}
+.cdo-item{border:1.5px solid var(--borda);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.cdo-cab{font-size:13px;font-weight:700;color:var(--azul);margin-bottom:8px}
+.cdo-cab small{font-weight:400;color:var(--cinza);margin-left:6px}
+.achado{border-top:1px solid #E3E9F1;padding:9px 0 3px;font-size:13px}
+.achado:first-of-type{border-top:none;padding-top:2px}
+.achado .tit{font-weight:600;display:flex;gap:8px;align-items:flex-start}
+.achado .tit input{width:17px;height:17px;margin-top:1px;flex:none;cursor:pointer}
+.regra{flex:none;font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 7px;background:#FEF5E7;color:#8E5B00}
+.regra.corrigir{background:#E8F6EE;color:var(--verd2)}
+.achado .ded{font-size:12.5px;color:var(--texto);margin:4px 0 0 2px;padding-left:10px;border-left:3px solid var(--borda)}
+.achado .muda{font-size:12.5px;margin:5px 0 0 2px;color:var(--verd2);font-weight:600}
+.cdo-aviso{font-size:12px;color:#8E5B00;background:#FEF5E7;border-radius:7px;padding:7px 10px;margin-top:6px}
+.cdo-acao{position:sticky;bottom:10px;background:var(--branco);border:1.5px solid var(--verde);border-radius:10px;
+  padding:12px;margin-top:14px;box-shadow:var(--sombra);display:none}
+.cdo-acao.vis{display:block}
+.cdo-acao .sel{font-size:12px;color:var(--cinza);margin-bottom:8px;display:flex;justify-content:space-between}
+.cdo-acao .sel a{color:var(--azul2);cursor:pointer;font-weight:600}
+.sit{font-size:11px;font-weight:700;border-radius:5px;padding:2px 7px;margin-right:6px}
+.sit.aplicado{background:#E8F6EE;color:var(--verd2)} .sit.pulado,.sit.ignorado{background:#EEF2F7;color:var(--cinza)}
+.sit.conferir,.sit.erro{background:#FDECEA;color:var(--verm)}
+@media(max-width:560px){.cdo-resumo{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+
+<div id="tela-login">
+  <div class="card-login">
+    <div class="logo-box">🌲</div>
+    <h1>GN PCP Florestal</h1>
+    <p class="sub">Sistema de Atualização de Dados</p>
+
+    <div class="campo">
+      <label>Usuário</label>
+      <input type="text" id="inp-usuario" placeholder="seu@email.com" autocomplete="username">
+    </div>
+    <div class="campo">
+      <label>Senha</label>
+      <input type="password" id="inp-senha" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn-login" id="btn-login" onclick="fazerLogin()">Entrar</button>
+    <div class="msg-erro" id="msg-erro-login"></div>
+  </div>
+</div>
+
+
+<div id="tela-app">
+
+  <header>
+    <div class="h-esq">
+      <span class="icone">🌲</span>
+      <h2>GN PCP — Dashboard</h2>
+    </div>
+    <div class="h-dir">
+      <span class="info-usuario">👤 <span id="nome-usuario"></span></span>
+      <button class="btn-sair" onclick="fazerLogout()">Sair</button>
+    </div>
+  </header>
+
+  <nav class="abas">
+    <button class="aba ativa" data-aba="dash" onclick="trocarAba('dash')">📊 Dashboards</button>
+    <button class="aba" data-aba="cdo" onclick="trocarAba('cdo')">🔎 Conferir CDOs</button>
+  </nav>
+
+  <div class="container">
+
+    
+    <div id="status-bar"></div>
+
+    <div id="aba-dash">
+
+    
+    <div class="card">
+      <div class="card-titulo">📄 PDFs do dia — META e Dias</div>
+      <div class="card-sub">Envie os PDFs diários do Power BI. Num clique só o sistema atualiza a base com o ProdControl,
+        grava META, Dias Úteis e Dias Trabalhados, confere o Fat. Total com o PDF e publica os dashboards.</div>
+      <div class="upload-area" id="drop-PDF"
+        onclick="document.getElementById('file-PDF').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="dropPdf(event)">
+        <span class="upload-icone">📄</span>
+        <p><strong>Clique aqui</strong> ou arraste os PDFs (pode selecionar vários)</p>
+        <p style="font-size:11px;margin-top:4px">Somente .pdf — máximo 15 MB cada</p>
+        <input type="file" id="file-PDF" accept=".pdf,application/pdf" multiple onchange="pdfsSelecionados(this.files)">
+      </div>
+      <div class="lista-pdf" id="lista-pdf"></div>
+      <button class="btn-salvar" id="btn-pdf" onclick="enviarPdfs()">
+        <span class="spinner" id="spin-PDF"></span>
+        📤 Enviar PDFs e atualizar
+      </button>
+      <div id="msg-pdf" style="display:none;margin-top:14px"></div>
+      <div id="res-pdf"></div>
+    </div>
+
+    
+    <div class="card" style="padding:20px">
+      <button class="btn-atualizar" id="btn-atualizar" onclick="atualizar()">
+        <span class="spinner" id="spin-ATU"></span>
+        🔄 Atualizar Dashboards
+      </button>
+      <div class="ultima-atualizacao" id="ultima-atu"></div>
+
+      <div class="andamento" id="andamento">
+        <div class="and-topo">
+          <span id="and-msg">Iniciando…</span>
+          <span class="rel" id="and-tempo">00:00</span>
+        </div>
+        <div class="etapas" id="etapas">
+          <div class="etapa" data-n="1">Servidor</div>
+          <div class="etapa" data-n="2">ProdControl</div>
+          <div class="etapa" data-n="3">Gravar base</div>
+          <div class="etapa" data-n="4">Publicar</div>
+          <div class="etapa" data-n="5">Concluído</div>
+        </div>
+        <div class="barra"><div id="barra"></div></div>
+        <div class="log-vivo" id="log-vivo"></div>
+      </div>
+
+      <div class="resultado" id="resultado"></div>
+    </div>
+    </div>
+
+    <div id="aba-cdo" style="display:none">
+      <div class="card">
+        <div class="card-titulo">🔎 Conferir CDOs do ProdControl</div>
+        <div class="card-sub">Confere os CDOs do dia: horas por função em 100%, colaboradores e equipamentos da turma
+          apontados, horas de máquinas × operadores e motorista sem veículo. A conferência só lê; nada é alterado
+          no ProdControl sem você marcar e aplicar.</div>
+        <div class="cdo-filtros">
+          <div><label for="cdo-data">Data do CDO</label><input type="date" id="cdo-data"></div>
+          <div class="cresce"><label for="cdo-contrato">Contrato</label>
+            <select id="cdo-contrato">
+              <option value="">Todos os contratos</option>
+              <option>ARAUCO</option><option>MS Florestal</option><option>Innovatech</option>
+              <option>COLPAR</option><option>LACAN</option><option>Eucatex</option>
+            </select></div>
+        </div>
+        <button class="btn-atualizar" id="btn-cdo" onclick="cdoConferir()">
+          <span class="spinner" id="spin-CDO"></span>
+          🔎 Conferir CDOs
+        </button>
+        <div class="ultima-atualizacao" id="cdo-ultima"></div>
+        <div class="andamento" id="cdo-andamento">
+          <div class="and-topo"><span id="cdo-msg">Iniciando…</span></div>
+          <div class="log-vivo" id="cdo-log"></div>
+        </div>
+        <div class="resultado" id="cdo-erro"></div>
+        <div id="cdo-resultado"></div>
+        <div class="cdo-acao" id="cdo-acao">
+          <div class="sel"><span id="cdo-sel-txt"></span>
+            <span><a onclick="cdoMarcar(true)">marcar todas</a> · <a onclick="cdoMarcar(false)">desmarcar</a></span></div>
+          <button class="btn-salvar" id="btn-cdo-aplicar" onclick="cdoAplicar()">
+            <span class="spinner" id="spin-CDOA"></span><span id="cdo-aplicar-txt">✅ Aplicar correções marcadas</span>
+          </button>
+        </div>
+        <div id="cdo-aplicacao"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+(function () {
+  if (window.google && window.google.script && window.google.script.run) return;
+  function runner(ok, fail) {
+    return new Proxy({}, { get: function (_, nome) {
+      if (nome === 'withSuccessHandler') return function (f) { return runner(f, fail); };
+      if (nome === 'withFailureHandler') return function (f) { return runner(ok, f); };
+      return function () {
+        var args = Array.prototype.slice.call(arguments);
+        fetch('/api', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ fn: nome, args: args }) })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { if (d && d.__erro) throw new Error(d.__erro); if (ok) ok(d); })
+          .catch(function (e) { if (fail) fail(e); });
+      };
+    }});
+  }
+  window.google = { script: { run: runner(null, null) } };
+})();
+</script>
+<script>
+
+
+
+
+let TOKEN = null;
+
+
+function fazerLogin() {
+  const u   = document.getElementById('inp-usuario').value.trim();
+  const s   = document.getElementById('inp-senha').value;
+  const btn = document.getElementById('btn-login');
+
+  if (!u || !s) { erroLogin('Preencha usuário e senha.'); return; }
+
+  btn.disabled    = true;
+  btn.textContent = 'Entrando...';
+  ocultarErroLogin();
+
+  google.script.run
+    .withSuccessHandler(r => {
+      btn.disabled    = false;
+      btn.textContent = 'Entrar';
+      if (r.ok) {
+        TOKEN = r.token;
+        document.getElementById('nome-usuario').textContent = r.usuario;
+        document.getElementById('tela-login').style.display = 'none';
+        document.getElementById('tela-app').style.display   = 'block';
+        posLogin();
+      } else {
+        erroLogin(r.msg);
+      }
+    })
+    .withFailureHandler(e => {
+      btn.disabled    = false;
+      btn.textContent = 'Entrar';
+      erroLogin('Erro de conexão: ' + e.message);
+    })
+    .login(u, s);
+}
+
+function erroLogin(msg) {
+  const el = document.getElementById('msg-erro-login');
+  el.textContent  = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+function ocultarErroLogin() {
+  document.getElementById('msg-erro-login').style.display = 'none';
+}
+
+function fazerLogout() {
+  if (TOKEN) google.script.run.logout(TOKEN);
+  TOKEN = null;
+  pararAcompanhamento();
+  clearInterval(PDF_POLL);
+  document.getElementById('andamento').classList.remove('vis');
+  document.getElementById('resultado').classList.remove('vis');
+  document.getElementById('tela-app').style.display   = 'none';
+  document.getElementById('tela-login').style.display = 'flex';
+  document.getElementById('inp-senha').value           = '';
+  limparStatus();
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('inp-usuario')
+    .addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inp-senha').focus(); });
+  document.getElementById('inp-senha')
+    .addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+});
+
+
+const ETAPAS = [
+  { re: /Login na API ProdControl OK|Janela:/,              msg: 'Buscando boletins no ProdControl…', pct: 30 },
+  { re: /Linhas geradas:/,                                  msg: 'Comparando e gravando na base…',    pct: 55 },
+  { re: /Publicando dashboards|Nada mudou na base/,         msg: 'Publicando os dashboards…',          pct: 75 }
+];
+let ACOMP = { timer: null, relogio: null, inicio: null, falhasSeguidas: 0, viuRodando: false };
+
+function rpc(fn, args) {
+  return new Promise((ok, fail) => {
+    google.script.run.withSuccessHandler(ok).withFailureHandler(fail)[fn].apply(null, args || []);
+  });
+}
+
+function posLogin() {
+  
+  rpc('statusAtualizacao', [TOKEN]).then(r => {
+    if (r && r.ok && r.rodando) iniciarAcompanhamento(r.iniciado_em);
+    else if (r && r.ok && r.finalizado_em) ultimaAtu(r.finalizado_em, r.erro);
+  }).catch(() => {});
+}
+
+function ultimaAtu(iso, erro) {
+  const d = paraData(iso);
+  if (!d) return;
+  document.getElementById('ultima-atu').textContent =
+    (erro ? 'Última atualização terminou com erro em ' : 'Última atualização concluída em ') +
+    d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+
+function paraData(iso) {
+  if (!iso) return null;
+  const d = new Date(/[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : iso + '-04:00');
+  return isNaN(d) ? null : d;
+}
+
+function atualizar() {
+  ACOMP.semRolar = false;
+  setLoad('btn-atualizar', 'spin-ATU', true);
+  limparStatus();
+  document.getElementById('resultado').classList.remove('vis');
+  mostrarAndamento('Acordando o servidor (pode levar até 1 min)…', 0, 8);
+  iniciarRelogio(new Date());
+
+  rpc('atualizarDashboards', [TOKEN]).then(r => {
+    if (!r.ok) { finalizarComErro(r.msg); return; }
+    if (r.modo === 'github') {
+      
+      pararAcompanhamento();
+      setLoad('btn-atualizar', 'spin-ATU', false);
+      document.getElementById('andamento').classList.remove('vis');
+      mostrarResultado({ titulo: 'Publicação parcial', classe: 'aviso', icone: '⚠️',
+                         linhas: [r.msg] });
+      return;
+    }
+    iniciarAcompanhamento(null);
+  }).catch(e => finalizarComErro('Erro de conexão: ' + e.message));
+}
+
+function iniciarAcompanhamento(iniciadoEm) {
+  setLoad('btn-atualizar', 'spin-ATU', true);
+  const ini = paraData(iniciadoEm);
+  if (ini) iniciarRelogio(ini);
+  else if (!ACOMP.inicio) iniciarRelogio(new Date());
+  mostrarAndamento('Conectando ao ProdControl…', 1, 15);
+  ACOMP.falhasSeguidas = 0;
+  ACOMP.viuRodando = false;
+  clearInterval(ACOMP.timer);
+  consultar();
+  ACOMP.timer = setInterval(consultar, 6000);
+}
+
+function consultar() {
+  if (!TOKEN) return pararAcompanhamento();
+  if (ACOMP.inicio && (Date.now() - ACOMP.inicio) > 15 * 60 * 1000) {
+    finalizarComErro('Sem resposta do servidor há mais de 15 min. Confira o LOG da planilha.');
+    return;
+  }
+  rpc('statusAtualizacao', [TOKEN]).then(r => {
+    if (!r.ok) { if (++ACOMP.falhasSeguidas >= 5) finalizarComErro(r.msg); return; }
+    ACOMP.falhasSeguidas = 0;
+    const prog = r.progresso || [];
+    document.getElementById('log-vivo').textContent = prog.join('\n');
+    const lv = document.getElementById('log-vivo'); lv.scrollTop = lv.scrollHeight;
+
+    if (r.rodando) {
+      if (!ACOMP.viuRodando) { const d = paraData(r.iniciado_em); if (d) iniciarRelogio(d); }
+      ACOMP.viuRodando = true;
+      const txt = prog.join('\n');
+      let etapa = 1, msg = 'Conectando ao ProdControl…', pct = 15;
+      ETAPAS.forEach((e, i) => { if (e.re.test(txt)) { etapa = i + 2; msg = e.msg; pct = e.pct; } });
+      mostrarAndamento(msg, etapa - 1, pct);
+      return;
+    }
+    
+    pararAcompanhamento();
+    setLoad('btn-atualizar', 'spin-ATU', false);
+    if (r.erro) { finalizarComErro(r.erro, true); return; }
+    if (!r.resultado) {
+      finalizarComErro('A atualização foi interrompida (o servidor reiniciou). Clique em Atualizar novamente.', true);
+      return;
+    }
+    const pub = r.resultado.publicacao || {};
+    const falhouPub = pub.situacao === 'falha' || r.resultado.dashboards === 'sem GITHUB_TOKEN';
+    marcarEtapas(falhouPub ? 3 : 5, falhouPub ? 3 : -1);
+    document.getElementById('barra').style.width = '100%';
+    document.getElementById('and-msg').textContent = falhouPub ? 'Base atualizada; publicação falhou' : 'Concluído';
+    ultimaAtu(r.finalizado_em, falhouPub);
+    resultadoAtualizacao(r.resultado);
+  }).catch(e => { if (++ACOMP.falhasSeguidas >= 5) finalizarComErro('Erro de conexão: ' + e.message); });
+}
+
+function mostrarAndamento(msg, etapaAtual, pct) {
+  const and = document.getElementById('andamento');
+  const nova = !and.classList.contains('vis');
+  and.classList.add('vis');
+  if (nova && !ACOMP.semRolar) and.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.getElementById('and-msg').textContent = msg;
+  document.getElementById('barra').style.width = pct + '%';
+  marcarEtapas(etapaAtual, -1);
+  if (etapaAtual === 0) document.getElementById('log-vivo').textContent = '';
+}
+
+function marcarEtapas(atual, falhou) {
+  document.querySelectorAll('#etapas .etapa').forEach((el, i) => {
+    el.className = 'etapa' + (i === falhou ? ' falhou' : i < atual || atual >= 5 ? ' feita' : i === atual ? ' atual' : '');
+  });
+}
+
+function iniciarRelogio(inicio) {
+  ACOMP.inicio = inicio.getTime();
+  clearInterval(ACOMP.relogio);
+  const tick = () => {
+    const s = Math.max(0, Math.floor((Date.now() - ACOMP.inicio) / 1000));
+    document.getElementById('and-tempo').textContent =
+      String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
+  tick();
+  ACOMP.relogio = setInterval(tick, 1000);
+}
+
+function pararAcompanhamento() {
+  clearInterval(ACOMP.timer); clearInterval(ACOMP.relogio);
+  ACOMP.timer = ACOMP.relogio = null;
+  ACOMP.inicio = null;
+}
+
+function finalizarComErro(msg, manterLog) {
+  pararAcompanhamento();
+  setLoad('btn-atualizar', 'spin-ATU', false);
+  const atual = [...document.querySelectorAll('#etapas .etapa')].findIndex(el => el.classList.contains('atual'));
+  marcarEtapas(Math.max(atual, 0), Math.max(atual, 0));
+  document.getElementById('and-msg').textContent = 'Atualização não concluída';
+  if (!manterLog) document.getElementById('andamento').classList.add('vis');
+  mostrarResultado({ titulo: 'Falha na atualização', classe: 'erro', icone: '⛔', linhas: [msg] });
+}
+
+function resultadoAtualizacao(res) {
+  const pub = res.publicacao || {};
+  const fmt = n => (n || 0).toLocaleString('pt-BR');
+  const box = (nome, x) => !x ? '' : `
+    <div class="res-box"><h4>${nome}</h4>
+      <div class="res-num"><span>Boletins novos</span><b>${fmt(x.novos)}</b></div>
+      <div class="res-num"><span>Boletins alterados</span><b>${fmt(x.alterados)}</b></div>
+      <div class="res-num"><span>Sem mudança</span><b>${fmt(x.iguais)}</b></div>
+      <div class="res-num"><span>Linhas gravadas</span><b>${fmt(x.gravadas)}</b></div>
+    </div>`;
+  const jan = (res.janela || []).map(d => d.split('-').reverse().join('/')).join(' a ');
+  let pubTxt;
+  if (pub.situacao === 'sucesso') pubTxt = '✅ Dashboards publicados.';
+  else if (pub.situacao === 'falha') pubTxt = '⛔ Publicação dos dashboards falhou.';
+  else if (pub.situacao === 'tempo esgotado') pubTxt = '⏳ Publicação ainda em andamento (passou de 8 min).';
+  else if (res.dashboards === 'sem GITHUB_TOKEN') pubTxt = '⛔ Dashboards não publicados: falta GITHUB_TOKEN no servidor.';
+  else pubTxt = 'Dashboards: ' + (res.dashboards || 'não solicitados');
+  const ok = pub.situacao === 'sucesso';
+  const avisos = (res.avisos || []).length
+    ? `<div class="res-avisos">⚠️ ${res.avisos.slice(0, 6).map(esc).join('<br>⚠️ ')}</div>` : '';
+  const el = document.getElementById('resultado');
+  el.innerHTML = `
+    <div class="res-titulo ${ok ? 'ok' : 'aviso'}">${ok ? '✅' : '⚠️'} Resultado da atualização</div>
+    <div class="res-grid">${box('Maquinário', res.maquinas)}${box('Produção', res.producao)}</div>
+    <div class="res-linha">📅 Período conferido: <b>${jan || '—'}</b>${res.gravado ? '' : ' — nada precisou ser gravado'}</div>
+    <div class="res-linha">${pubTxt}</div>${avisos}`;
+  el.classList.add('vis');
+}
+
+function mostrarResultado(o) {
+  const el = document.getElementById('resultado');
+  el.innerHTML = `<div class="res-titulo ${o.classe}">${o.icone} ${esc(o.titulo)}</div>` +
+    o.linhas.map(l => `<div class="res-linha">${esc(l)}</div>`).join('');
+  el.classList.add('vis');
+}
+
+function esc(t) {
+  return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+
+let PDFS = [];
+function dropPdf(e) {
+  e.preventDefault();
+  document.getElementById('drop-PDF').classList.remove('dragover');
+  pdfsSelecionados(e.dataTransfer.files);
+}
+function pdfsSelecionados(lista) {
+  const novos = [...lista].filter(f => /\.pdf$/i.test(f.name));
+  const grandes = novos.filter(f => f.size > 15 * 1024 * 1024);
+  if (grandes.length) msgPdf('erro', '⚠️ PDF acima de 15 MB ignorado: ' + grandes.map(f => f.name).join(', '));
+  novos.filter(f => f.size <= 15 * 1024 * 1024).forEach(f => {
+    if (!PDFS.some(p => p.name === f.name && p.size === f.size)) PDFS.push(f);
+  });
+  document.getElementById('file-PDF').value = '';
+  desenharListaPdf();
+}
+function desenharListaPdf() {
+  document.getElementById('lista-pdf').innerHTML = PDFS.map((f, i) =>
+    `<div>📄 ${esc(f.name)} <span style="color:var(--cinza)">(${(f.size/1024).toFixed(0)} KB)</span>
+     <a href="#" onclick="PDFS.splice(${i},1);desenharListaPdf();return false" style="color:var(--verm);margin-left:6px">remover</a></div>`).join('');
+}
+function bytesParaBase64(u8) {
+  let bin = '';
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+// 1º: texto das 3 primeiras páginas (pdf.js) — ~1 KB. Reserva: PDF cortado (pdf-lib) ou inteiro.
+async function textoPdf(bytes) {
+  if (!window.pdfjsLib) throw new Error('pdf.js indisponível');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const pags = [];
+  for (let i = 1; i <= Math.min(3, doc.numPages); i++) {
+    const c = await (await doc.getPage(i)).getTextContent();
+    pags.push(c.items.map(it => it.str + (it.hasEOL ? '\n' : ' ')).join(''));
+  }
+  const t = pags.join('\n\f\n');
+  if (!/GN\d{4};/.test(t.replace(/\s+/g, ' ').replace(/ ;|; /g, ';'))) throw new Error('linha de controle não achada no texto');
+  return t;
+}
+async function prepararPdf(f) {
+  const original = new Uint8Array(await f.arrayBuffer());
+  try { return { nome: f.name, texto: await textoPdf(original.slice()) }; } catch (e) {   }
+  try {
+    if (!window.PDFLib) throw new Error('pdf-lib indisponível');
+    const src = await PDFLib.PDFDocument.load(original, { ignoreEncryption: true });
+    const n = Math.min(3, src.getPageCount());
+    const out = await PDFLib.PDFDocument.create();
+    (await out.copyPages(src, [...Array(n).keys()])).forEach(p => out.addPage(p));
+    const cortado = await out.save({ useObjectStreams: true });
+    return { nome: f.name, base64: bytesParaBase64(cortado.length < original.length ? cortado : original) };
+  } catch (e) {
+    return { nome: f.name, base64: bytesParaBase64(original) };
+  }
+}
+let PDF_POLL = null;
+async function enviarPdfs() {
+  if (!PDFS.length) { msgPdf('erro', '⚠️ Selecione ao menos um PDF.'); return; }
+  setLoad('btn-pdf', 'spin-PDF', true);
+  document.getElementById('res-pdf').innerHTML = '';
+  msgPdf('info', '⏳ Preparando ' + PDFS.length + ' PDF(s)…');
+  try {
+    const arqs = [];
+    for (const f of PDFS) arqs.push(await prepararPdf(f));
+    const kb = arqs.reduce((t, a) => t + (a.texto ? a.texto.length : a.base64.length * 0.75), 0) / 1024;
+    msgPdf('info', `⏳ Enviando ${arqs.length} PDF(s) (${kb < 1024 ? kb.toFixed(0) + ' KB' : (kb / 1024).toFixed(1) + ' MB'}). Se o servidor estiver dormindo, leva até 1 min…`);
+    const r = await rpc('enviarPdfs', [TOKEN, arqs, true]);
+    if (!r.ok) { setLoad('btn-pdf', 'spin-PDF', false); msgPdf('erro', '⚠️ ' + r.msg); tabelaPdf([], r.erros || []); return; }
+    if (r.processando) { acompanharPdfs(r.arquivos || []); return; }
+    concluirPdfs(r);                                   
+  } catch (e) {
+    setLoad('btn-pdf', 'spin-PDF', false);
+    msgPdf('erro', '⚠️ Erro: ' + e.message + ' — confira o LOG da planilha antes de reenviar.');
+  }
+}
+function acompanharPdfs(gns) {
+  const inicio = Date.now(); let falhas = 0;
+  const tick = () => {
+    const s = Math.floor((Date.now() - inicio) / 1000);
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
+  clearInterval(PDF_POLL);
+  const consultar = () => {
+    if (!TOKEN) { clearInterval(PDF_POLL); return; }
+    if (Date.now() - inicio > 8 * 60 * 1000) {
+      clearInterval(PDF_POLL); setLoad('btn-pdf', 'spin-PDF', false);
+      msgPdf('erro', '⚠️ O servidor não terminou em 8 min. Confira o LOG da planilha antes de reenviar.'); return;
+    }
+    rpc('statusPdfs', [TOKEN]).then(r => {
+      if (!r.ok) { if (++falhas >= 5) { clearInterval(PDF_POLL); setLoad('btn-pdf', 'spin-PDF', false); msgPdf('erro', '⚠️ ' + r.msg); } return; }
+      falhas = 0;
+      if (r.rodando) { msgPdf('info', `⏳ ${tick()} — ${gns.join(', ')}: ${r.etapa || 'processando'}…`); return; }
+      r.tempo = tick();
+      clearInterval(PDF_POLL); setLoad('btn-pdf', 'spin-PDF', false);
+      if (r.erro) { msgPdf('erro', '⚠️ ' + r.erro); return; }
+      if (!r.itens) { msgPdf('erro', '⚠️ O processamento foi interrompido (o servidor reiniciou). Confira o LOG da planilha.'); return; }
+      concluirPdfs(r);
+    }).catch(e => { if (++falhas >= 5) { clearInterval(PDF_POLL); setLoad('btn-pdf', 'spin-PDF', false); msgPdf('erro', '⚠️ Erro de conexão: ' + e.message); } });
+  };
+  msgPdf('info', `⏳ 00:00 — ${gns.join(', ')}: recebidos, processando…`);
+  PDF_POLL = setInterval(consultar, 4000);
+}
+function concluirPdfs(r) {
+  setLoad('btn-pdf', 'spin-PDF', false);
+  const div = r.itens.filter(x => !x.confere).length;
+  const b = r.base;
+  const txtBase = b ? `Base atualizada (${b.maq_novos + b.maq_alterados} boletins de máquinas e ${b.prod_novos + b.prod_alterados} de produção novos/alterados). ` : '';
+  msgPdf(div ? 'erro' : 'ok', (r.gravado ? (div ? '⚠️' : '✅') + ' ' + txtBase + 'META e Dias gravados. ' : '🔎 Só conferência (nada gravado). ') +
+    (div ? div + ' contrato(s) com Fat. Total diferente do PDF — veja abaixo.' : 'Todos os contratos batem com o PDF.') +
+    (r.tempo ? ` (${r.tempo})` : '') + (r.gravado ? ' Publicando os dashboards…' : ''));
+  tabelaPdf(r.itens, r.erros || []);
+  if (r.gravado) {
+    PDFS = []; desenharListaPdf();
+    
+    setTimeout(() => rpc('statusAtualizacao', [TOKEN]).then(s => { if (s && s.ok && s.rodando) { ACOMP.semRolar = true; iniciarAcompanhamento(s.iniciado_em); } }).catch(() => {}), 1500);
+  }
+}
+function msgPdf(tipo, msg) {
+  const el = document.getElementById('msg-pdf');
+  const cor = { ok: ['#E9F7EF', 'var(--verde)'], erro: ['#FDECEA', 'var(--verm)'], info: ['var(--azulc)', 'var(--azul)'] }[tipo];
+  el.style.cssText = `display:block;margin-top:14px;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:600;background:${cor[0]};color:${cor[1]}`;
+  el.textContent = msg;
+}
+function tabelaPdf(itens, erros) {
+  const br = n => n == null ? '—' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let h = '';
+  if (itens.length) {
+    h += `<div style="overflow-x:auto"><table class="tab-pdf"><tr><th>Contrato</th><th>Competência</th><th>META</th><th>Dias úteis</th>
+          <th>Dias trab.</th><th>Fat. PDF</th><th>Fat. base</th><th>Situação</th></tr>`;
+    itens.forEach(x => {
+      const dv = (x.divergencias || []).map(v => esc(v.boletim ? `Boletim ${v.boletim}: ${br(v.diferenca)} (${v.causa})` : v.causa)).join('<br>');
+      h += `<tr><td><b>${esc(x.gn)}</b></td><td>${esc(x.competencia)}</td><td>${br(x.meta)}</td>
+            <td>${br(x.dias_uteis)}</td><td>${br(x.dias_trabalhados)}</td><td>${br(x.fat_pdf)}</td><td>${br(x.fat_base)}</td>
+            <td>${x.confere ? '<span class="tag ok">confere</span>' : `<span class="tag div">difere ${br(x.diferenca)}</span>`}
+            ${dv ? `<div class="diverg">${dv}</div>` : ''}</td></tr>`;
+    });
+    h += '</table></div>';
+  }
+  if (erros.length) h += `<div class="res-avisos">${erros.map(e => '⚠️ ' + esc(e.arquivo + ': ' + e.erro)).join('<br>')}</div>`;
+  document.getElementById('res-pdf').innerHTML = h;
+}
+
+// ── UTILITÁRIOS ──────────────────────────────────
+function setLoad(btnId, spinId, ativo) {
+  const btn  = document.getElementById(btnId);
+  const spin = document.getElementById(spinId);
+  if (btn)  btn.disabled         = ativo;
+  if (spin) spin.style.display   = ativo ? 'block' : 'none';
+}
+
+function status(tipo, msg) {
+  const el = document.getElementById('status-bar');
+  el.className   = tipo;
+  el.textContent = msg;
+}
+
+function limparStatus() {
+  const el = document.getElementById('status-bar');
+  el.className   = '';
+  el.textContent = '';
+  el.style.display = 'none';
+}
+</script>
+<script>
+// ── CONFERIR CDOs ────────────────────────────────
+let CDO = { timer: null, carregou: false, confirma: false, falhas: 0, etapa: null };
+const NOME_REGRA = { R1: 'Horas da função', R2: 'Motorista sem veículo', R3: 'Mão de obra',
+                     R4: 'Equipamento', R5: 'Máquina × função' };
+
+function trocarAba(nome) {
+  document.querySelectorAll('.aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+  document.getElementById('aba-dash').style.display = nome === 'dash' ? '' : 'none';
+  document.getElementById('aba-cdo').style.display  = nome === 'cdo'  ? '' : 'none';
+  if (nome === 'cdo' && !CDO.carregou) {
+    CDO.carregou = true;
+    const d = new Date(Date.now() - 86400000);
+    document.getElementById('cdo-data').value =
+      d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    cdoConsultar(true);
+  }
+}
+
+function cdoErro(msg) {
+  const el = document.getElementById('cdo-erro');
+  el.innerHTML = msg ? `<div class="res-titulo erro">⛔ ${esc(msg)}</div>` : '';
+  el.classList.toggle('vis', !!msg);
+}
+
+function cdoOcupado(sim, msg) {
+  setLoad('btn-cdo', 'spin-CDO', sim);
+  setLoad('btn-cdo-aplicar', 'spin-CDOA', sim);
+  document.getElementById('cdo-andamento').classList.toggle('vis', sim);
+  if (msg) document.getElementById('cdo-msg').textContent = msg;
+}
+
+function cdoConferir() {
+  const iso = document.getElementById('cdo-data').value;
+  if (!iso) { cdoErro('Escolha a data do CDO.'); return; }
+  cdoErro('');
+  document.getElementById('cdo-resultado').innerHTML = '';
+  document.getElementById('cdo-aplicacao').innerHTML = '';
+  document.getElementById('cdo-acao').classList.remove('vis');
+  document.getElementById('cdo-log').textContent = '';
+  cdoOcupado(true, 'Acordando o servidor (pode levar até 1 min)…');
+  rpc('cdoDetectar', [TOKEN, iso.split('-').reverse().join('/'), document.getElementById('cdo-contrato').value])
+    .then(r => {
+      if (!r.ok) { cdoOcupado(false); cdoErro(r.msg); return; }
+      cdoAcompanhar('Lendo os CDOs no ProdControl…');
+    })
+    .catch(e => { cdoOcupado(false); cdoErro('Erro de conexão: ' + e.message); });
+}
+
+function cdoAcompanhar(msg) {
+  cdoOcupado(true, msg);
+  CDO.falhas = 0;
+  clearInterval(CDO.timer);
+  CDO.timer = setInterval(cdoConsultar, 4000);
+  cdoConsultar();
+}
+
+function cdoParar() { clearInterval(CDO.timer); CDO.timer = null; }
+
+function cdoConsultar(silencioso) {
+  if (!TOKEN) return cdoParar();
+  rpc('cdoStatus', [TOKEN]).then(r => {
+    if (!r.ok) {
+      if (silencioso === true) return;
+      if (++CDO.falhas >= 5) { cdoParar(); cdoOcupado(false); cdoErro(r.msg); }
+      return;
+    }
+    CDO.falhas = 0;
+    const log = document.getElementById('cdo-log');
+    log.textContent = (r.progresso || []).join('\n'); log.scrollTop = log.scrollHeight;
+    if (r.rodando) {
+      if (!CDO.timer) cdoAcompanhar(r.etapa === 'aplicar' ? 'Gravando no ProdControl…' : 'Lendo os CDOs no ProdControl…');
+      return;
+    }
+    cdoParar();
+    cdoOcupado(false);
+    if (r.erro) { cdoErro(r.erro); return; }
+    if (r.deteccao) cdoDesenhar(r.deteccao, r.etapa === 'aplicar' ? r.aplicacao : null, r.finalizado_em);
+    else if (silencioso !== true) cdoErro('O servidor reiniciou e perdeu a conferência. Clique em Conferir CDOs de novo.');
+  }).catch(e => {
+    if (silencioso === true) return;
+    if (++CDO.falhas >= 5) { cdoParar(); cdoOcupado(false); cdoErro('Erro de conexão: ' + e.message); }
+  });
+}
+
+function cdoData(iso) { return String(iso || '').split('-').reverse().join('/'); }
+
+function cdoDesenhar(det, aplicacao, finalizadoEm) {
+  const R = det.resumo || {}, cdos = det.cdos || [];
+  const aplicados = {};
+  ((aplicacao || {}).itens || []).forEach(i => { aplicados[i.id] = i; });
+  const per = (R.periodo || []).map(cdoData);
+  const d = paraData(finalizadoEm);
+  document.getElementById('cdo-ultima').textContent = 'Conferência de ' +
+    (per[0] === per[1] ? per[0] : per.join(' a ')) +
+    (d ? ' — feita em ' + d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '');
+
+  let h = `<div class="cdo-resumo">
+    <div class="cdo-num"><b>${R.cdos_lidos || 0}</b><span>CDOs lidos</span></div>
+    <div class="cdo-num alerta"><b>${R.cdos_com_divergencia || 0}</b><span>com divergência</span></div>
+    <div class="cdo-num pronto"><b>${R.corrigir || 0}</b><span>correções prontas</span></div>
+    <div class="cdo-num alerta"><b>${R.revisar || 0}</b><span>para revisar</span></div></div>`;
+  if (!cdos.length) h += `<div class="res-titulo ok">✅ Nenhuma divergência nos CDOs conferidos.</div>`;
+  if (R.cdos_sem_cadastro) h += `<div class="cdo-aviso">⚠️ ${R.cdos_sem_cadastro} CDO(s) sem consulta ao cadastro da turma — conferência parcial neles.</div>`;
+
+  let contrato = null;
+  cdos.forEach(c => {
+    if (c.contrato !== contrato) {
+      contrato = c.contrato;
+      const pc = (R.por_contrato || {})[contrato] || {};
+      h += `<div class="cdo-contrato"><span>${esc(contrato)}</span><span>${pc.com_divergencia || 0} de ${pc.cdos || 0} CDOs</span></div>`;
+    }
+    h += `<div class="cdo-item"><div class="cdo-cab">CDO ${esc(c.cdo)}<small>${cdoData(c.data)} · ${esc(c.encarregado || 'sem encarregado')}${c.turma ? ' · ' + esc(c.turma) : ''}</small></div>`;
+    (c.achados || []).forEach(a => {
+      const ap = aplicados[a.id];
+      const pode = a.tipo === 'corrigir' && !(ap && ap.situacao === 'aplicado');
+      h += `<div class="achado"><div class="tit">` +
+        (pode ? `<input type="checkbox" class="cdo-chk" value="${esc(a.id)}" onchange="cdoSelecao()">` : '') +
+        `<span class="regra ${a.tipo === 'corrigir' ? 'corrigir' : ''}">${esc(NOME_REGRA[a.regra] || a.regra)}</span>` +
+        `<span>${esc(a.titulo)}</span></div>`;
+      (a.deducao || []).forEach(t => { h += `<div class="ded">${esc(t)}</div>`; });
+      if (a.antes && a.depois) h += `<div class="muda">Trabalhadas ${a.antes.workedHours} → ${a.depois.workedHours} h · ` +
+        `Improdutivas ${a.antes.unproductiveHours} → ${a.depois.unproductiveHours} h</div>`;
+      if (ap) h += `<div class="ded"><span class="sit ${esc(ap.situacao)}">${esc(ap.situacao.toUpperCase())}</span>${esc(ap.motivo || 'gravado no ProdControl')}</div>`;
+      h += `</div>`;
+    });
+    (c.avisos || []).forEach(t => { h += `<div class="cdo-aviso">⚠️ ${esc(t)}</div>`; });
+    h += `</div>`;
+  });
+  document.getElementById('cdo-resultado').innerHTML = h;
+
+  let ha = '';
+  if (aplicacao) {
+    ha = `<div class="resultado vis"><div class="res-titulo ${aplicacao.aplicados === aplicacao.total ? 'ok' : 'aviso'}">` +
+      `${aplicacao.aplicados === aplicacao.total ? '✅' : '⚠️'} ${aplicacao.aplicados} de ${aplicacao.total} correção(ões) gravada(s) no ProdControl</div>` +
+      `<div class="res-linha">Clique em <b>Conferir CDOs</b> de novo para confirmar que fechou em 100%.</div></div>`;
+  }
+  document.getElementById('cdo-aplicacao').innerHTML = ha;
+  cdoSelecao();
+}
+
+function cdoMarcar(sim) {
+  document.querySelectorAll('.cdo-chk').forEach(c => { c.checked = sim; });
+  cdoSelecao();
+}
+
+function cdoSelecao() {
+  const todos = document.querySelectorAll('.cdo-chk'), n = document.querySelectorAll('.cdo-chk:checked').length;
+  CDO.confirma = false;
+  document.getElementById('cdo-acao').classList.toggle('vis', todos.length > 0);
+  document.getElementById('cdo-sel-txt').textContent = n + ' de ' + todos.length + ' correção(ões) marcada(s)';
+  document.getElementById('cdo-aplicar-txt').textContent = '✅ Aplicar correções marcadas';
+  document.getElementById('btn-cdo-aplicar').disabled = n === 0;
+}
+
+function cdoAplicar() {
+  const ids = [...document.querySelectorAll('.cdo-chk:checked')].map(c => c.value);
+  if (!ids.length) return;
+  if (!CDO.confirma) {            // 1º clique pede confirmação; o 2º grava
+    CDO.confirma = true;
+    document.getElementById('cdo-aplicar-txt').textContent =
+      '⚠️ Confirmar: gravar ' + ids.length + ' correção(ões) no ProdControl';
+    return;
+  }
+  CDO.confirma = false;
+  cdoErro('');
+  cdoOcupado(true, 'Gravando no ProdControl…');
+  rpc('cdoAplicar', [TOKEN, ids]).then(r => {
+    if (!r.ok) { cdoOcupado(false); cdoErro(r.msg); cdoSelecao(); return; }
+    cdoAcompanhar('Gravando no ProdControl…');
+  }).catch(e => { cdoOcupado(false); cdoErro('Erro de conexão: ' + e.message); cdoSelecao(); });
+}
+
+(function () {                    // ao sair, para o acompanhamento e volta para a primeira aba
+  const sair = fazerLogout;
+  fazerLogout = function () {
+    cdoParar(); CDO.carregou = false;
+    document.getElementById('cdo-resultado').innerHTML = '';
+    document.getElementById('cdo-aplicacao').innerHTML = '';
+    document.getElementById('cdo-acao').classList.remove('vis');
+    trocarAba('dash');
+    sair();
+  };
+})();
+</script>
+</body>
+</html>
