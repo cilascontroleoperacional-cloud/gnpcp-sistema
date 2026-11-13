@@ -25,6 +25,10 @@ estado = {
 estado_pdf = {"rodando": False, "etapa": None, "resultado": None, "erro": None,
               "iniciado_em": None, "finalizado_em": None}
 
+# correção de CDOs: detecção em segundo plano; a última detecção fica em memória para o /cdo/aplicar
+estado_cdo = {"rodando": False, "etapa": None, "progresso": [], "deteccao": None, "aplicacao": None,
+              "erro": None, "iniciado_em": None, "finalizado_em": None}
+
 # =========================================================
 # API ProdControl (REST direto — substitui Playwright)
 # =========================================================
@@ -160,6 +164,19 @@ class ProdControlAPI:
             break
         r.raise_for_status()
         return r.json()
+
+    def put(self, path, body):
+        """PUT (gravação). Refaz o login 1 vez se o token expirou; NUNCA repete o envio em erro
+        5xx/timeout — uma alteração pode já ter sido gravada. Quem chama trata a exceção."""
+        url = f"{API_BASE}{path}"
+        r = self.s.put(url, headers=self._headers(), json=body, timeout=60)
+        if r.status_code == 401:
+            log("Token expirado, refazendo login...")
+            self.login()
+            r = self.s.put(url, headers=self._headers(), json=body, timeout=60)
+        if r.status_code >= 400:
+            raise RuntimeError(f"{r.status_code} {r.text[:200]}")
+        return r.json() if r.content else {}
 
     def tipo_maquina(self, asset_id):
         """Resolve o Tipo (resourceType.name) do patrimônio, com cache."""
@@ -775,6 +792,137 @@ def pdf_status():
     if not autorizado():
         return negar()
     return jsonify(estado_pdf)
+
+
+# =========================================================
+# Correção diária de CDOs (correcao_cdo.py)
+# =========================================================
+def _log_cdo(msg):
+    linha = f"[{agora_ms().strftime('%H:%M:%S')}] {msg}"
+    estado_cdo["progresso"].append(linha)
+    print(linha, flush=True)
+
+
+def _reservar_cdo(etapa):
+    with _trava:
+        if estado_cdo["rodando"]:
+            return False
+        estado_cdo.update({"rodando": True, "etapa": etapa, "progresso": [], "erro": None,
+                           "iniciado_em": agora_ms().isoformat(), "finalizado_em": None})
+        return True
+
+
+def _periodo_cdo(body):
+    """{"data":"DD/MM/YYYY"} | {"inicio":..,"fim":..} | vazio = ontem. Máximo 31 dias."""
+    f = "%d/%m/%Y"
+    if body.get("inicio") and body.get("fim"):
+        di, df = datetime.strptime(body["inicio"], f), datetime.strptime(body["fim"], f)
+    elif body.get("data"):
+        di = df = datetime.strptime(body["data"], f)
+    else:
+        di = df = datetime.combine((agora_ms() - timedelta(days=1)).date(), datetime.min.time())
+    if df < di or (df - di).days > 30:
+        raise ValueError("período inválido (fim antes do início ou mais de 31 dias)")
+    return di.strftime("%Y-%m-%d"), df.strftime("%Y-%m-%d")
+
+
+def _registrar_log_base(rotina, resultado, detalhe):
+    """Linha na aba LOG da GNPCP_BASE_2026 — melhor esforço (não derruba a correção)."""
+    try:
+        import atualizar_base as ab
+        token = get_access_token()
+        if token:
+            ab.registrar_log(ab.Base(token), rotina, resultado, detalhe)
+    except Exception as e:
+        _log_cdo(f"(LOG da base não gravado: {str(e)[:120]})")
+
+
+def _cdo_detectar_thread(contratos, ini, fim):
+    import correcao_cdo as cc
+    try:
+        api = ProdControlAPI()
+        api.login()
+        estado_cdo["deteccao"] = cc.detectar(api, contratos, ini, fim, log=_log_cdo)
+        estado_cdo["aplicacao"] = None
+    except Exception as e:
+        _log_cdo(f"ERRO: {e}")
+        estado_cdo["erro"] = str(e)[:500]
+    finally:
+        estado_cdo["rodando"] = False
+        estado_cdo["finalizado_em"] = agora_ms().isoformat()
+
+
+def _cdo_aplicar_thread(ids):
+    import correcao_cdo as cc
+    try:
+        api = ProdControlAPI()
+        api.login()
+        res = cc.aplicar(api, estado_cdo["deteccao"], ids, log=_log_cdo)
+        estado_cdo["aplicacao"] = res
+        _registrar_log_base("Correção de CDO (ProdControl)", f"{res['aplicados']} de {res['total']} aplicadas",
+                            json.dumps(res["itens"], ensure_ascii=False))
+    except Exception as e:
+        _log_cdo(f"ERRO: {e}")
+        estado_cdo["erro"] = str(e)[:500]
+    finally:
+        estado_cdo["rodando"] = False
+        estado_cdo["finalizado_em"] = agora_ms().isoformat()
+
+
+@app.route("/cdo/detectar", methods=["POST"])
+def cdo_detectar():
+    """
+    Só LEITURA: confere os CDOs do período e lista divergências (não grava nada).
+    Body JSON (opcional): {"data":"DD/MM/YYYY"} ou {"inicio":"..","fim":".."}; sem data = ontem.
+    "contratos": ["LACAN", ...] limita aos contratos informados. Resultado em GET /cdo/status.
+    """
+    if not autorizado():
+        return negar()
+    body = request.get_json(silent=True) or {}
+    try:
+        ini, fim = _periodo_cdo(body)
+    except ValueError as e:
+        return jsonify({"erro": f"Data inválida: {e}. Use DD/MM/YYYY."}), 400
+    contratos = CONTRATOS
+    if body.get("contratos"):
+        pedidos = {str(n).strip().lower() for n in body["contratos"]}
+        contratos = [c for c in CONTRATOS if c["nome"].lower() in pedidos]
+        if not contratos:
+            return jsonify({"erro": "Nenhum contrato reconhecido.",
+                            "validos": [c["nome"] for c in CONTRATOS]}), 400
+    if not _reservar_cdo("detectar"):
+        return jsonify({"erro": "Já existe uma conferência/correção de CDO em andamento. Aguarde."}), 409
+    threading.Thread(target=_cdo_detectar_thread, args=(contratos, ini, fim), daemon=True).start()
+    return jsonify({"mensagem": f"Conferência iniciada ({ini} a {fim}). Consulte /cdo/status."})
+
+
+@app.route("/cdo/aplicar", methods=["POST"])
+def cdo_aplicar():
+    """
+    GRAVA no ProdControl apenas as correções aprovadas: {"ids": ["...", "..."]} — ids vindos da
+    última detecção (GET /cdo/status). Itens "revisar" nunca são gravados. Resultado em /cdo/status.
+    """
+    if not autorizado():
+        return negar()
+    if not API_KEY:
+        return jsonify({"erro": "Gravação bloqueada: defina API_KEY no Render."}), 403
+    body = request.get_json(silent=True) or {}
+    ids = body.get("ids")
+    if not isinstance(ids, list) or not ids or not all(isinstance(i, str) for i in ids):
+        return jsonify({"erro": "Informe 'ids': lista com os ids das correções aprovadas."}), 400
+    if not estado_cdo["deteccao"]:
+        return jsonify({"erro": "Não há detecção em memória. Rode /cdo/detectar primeiro."}), 409
+    if not _reservar_cdo("aplicar"):
+        return jsonify({"erro": "Já existe uma conferência/correção de CDO em andamento. Aguarde."}), 409
+    threading.Thread(target=_cdo_aplicar_thread, args=(ids,), daemon=True).start()
+    return jsonify({"mensagem": f"Aplicando {len(ids)} correção(ões). Consulte /cdo/status."})
+
+
+@app.route("/cdo/status", methods=["GET"])
+def cdo_status():
+    if not autorizado():
+        return negar()
+    return jsonify(estado_cdo)
 
 
 if __name__ == "__main__":
