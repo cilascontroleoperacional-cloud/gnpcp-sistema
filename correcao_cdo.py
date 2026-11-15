@@ -13,10 +13,11 @@ Regras (definidas pelo analista de PCP em 13/11/2026 — ver claude/CORRECAO_CDO
   R3  Todo colaborador cadastrado na turma na data tem de estar na MÃO DE OBRA do CDO.
   R4  Toda máquina, veículo (exceto veículo leve) e implemento cadastrado na turma na data tem
       de estar apontado na aba MÁQUINAS.
-  R5  A PRODUÇÃO é a referência. Por operação + talhão, as horas trabalhadas e as paralisações
-      das MÁQUINAS (e dos IMPLEMENTOS) têm de ser iguais às horas trabalhadas e improdutivas dos
-      OPERADORES. Veículos x motoristas: comparação pelo total do CDO. Máquina parada o dia todo
-      (0 h trabalhada) em operação sem operador na PRODUÇÃO não é erro.
+  R5  Igual ao painel (DAX "% HORAS MAQUINAS" / "% HORAS VEÍCULOS", conferido no .pbix em 15/11/2026):
+      horas TRABALHADAS das máquinas do cadastro da turma (categoria Máquinas, sem VL/MT), somadas
+      em todos os CDOs do dia = horas TRABALHADAS dos operadores na PRODUÇÃO do CDO; idem Veículos x
+      motoristas. Implementos e paralisações não entram. Equipamento da turma apontado em outro CDO
+      entra na conta da turma dona do cadastro (a correção indicada é transferir o equipamento).
   R6  Horímetro: final - inicial = horas trabalhadas da linha; as linhas do dia formam sequência;
       o primeiro inicial do dia = último final apontado antes (até 10 dias para trás).
   R7  Linha de PRODUÇÃO com hora trabalhada e produção zerada (fora de apoio/manutenção).
@@ -115,6 +116,12 @@ def categoria_equip(resource_type):
     if "veiculo leve" in nome:
         return "VL"
     return "VEICULOS" if eh_veiculo(nome) else "MAQUINAS"
+
+
+def painel_ignora(codigo):
+    """O painel tira da conta códigos com VL (veículo leve) e MT."""
+    c = str(codigo or "").upper()
+    return "VL" in c or "MT" in c
 
 
 def presente(tipo_nome):
@@ -467,78 +474,71 @@ def analisar_cdo(cdo, resolver_operacao=None, resolver_tipo_ativo=None):
                             "; ".join(f"{e['codigo']} ({e['tipo']})" for e in fora) + "."],
                 "equipamentos": [{k: e[k] for k in ("codigo", "tipo", "categoria")} for e in fora]})
 
-    # --- R5: MÁQUINAS (e implementos) x PRODUÇÃO dos operadores, por operação + talhão
+    # --- R5: igual ao painel APONTAMENTOS_GERAL (medidas "% HORAS MAQUINAS" e "% HORAS VEÍCULOS"):
+    #   MÁQUINAS: horas TRABALHADAS das máquinas do cadastro da turma (categoria Máquinas, sem VL/MT),
+    #             somadas em todos os CDOs do dia = horas TRABALHADAS dos operadores na PRODUÇÃO.
+    #   VEÍCULOS: idem para a categoria Veículos x horas TRABALHADAS dos motoristas.
+    #   Implementos não entram. Paralisação não entra (o painel compara só horas trabalhadas).
     duvidosos = [e["codigo"] for e in equip if not e["confiavel"]]
-    if duvidosos:        # sem saber se é máquina, veículo ou implemento a conta sairia errada
+    if duvidosos and not cad_ok:      # sem saber se é máquina, veículo ou implemento a conta sairia errada
         avisos.append("Horas de equipamento x função não conferidas: categoria desconhecida de "
                       + ", ".join(sorted(set(duvidosos))) + ".")
     else:
-        prod_op = {}
-        for p in prods:
-            if p["grupo"] == "OPERADORES":
-                x = prod_op.setdefault(p["chave"], {"ht": 0.0, "hi": 0.0, "operacao": p["operacao"],
-                                                    "operacao_cod": p["operacao_cod"], "talhao": p["talhao"]})
-                x["ht"] += p["ht"]
-                x["hi"] += p["hi"]
-        for cat in ("MAQUINAS", "IMPLEMENTOS"):
-            linhas_eq = [e for e in equip if e["categoria"] == cat]
-            if not linhas_eq:
-                continue                  # falta de apontamento do equipamento é a R4
-            eq = {}
-            for e in linhas_eq:
-                x = eq.setdefault(e["chave"], {"ht": 0.0, "par": 0.0, "cods": [], "operacao": e["operacao"],
-                                               "operacao_cod": e["operacao_cod"], "talhao": e["talhao"]})
-                x["ht"] += e["ht"]
-                x["par"] += e["paradas"]
-                if e["codigo"] not in x["cods"]:
-                    x["cods"].append(e["codigo"])
-            problemas, itens = [], []
-            for ch in sorted(set(eq) | set(prod_op)):
-                m, p = eq.get(ch), prod_op.get(ch)
-                ref = m or p
-                onde = f"{ref['operacao_cod'] or ref['operacao']} talhão {ref['talhao']}"
-                if m and not p:
-                    if m["ht"] > TOL:
-                        problemas.append(f"{'/'.join(m['cods'])} ({onde}): {fmt(m['ht'])} h trabalhadas sem "
-                                         "produção de operador nessa operação e talhão.")
-                        itens.append({"onde": onde, "equipamentos": m["cods"], "maquina": [r2(m["ht"]), r2(m["par"])],
-                                      "producao": [0.0, 0.0]})
-                    continue              # parada o dia todo sem operador: não é erro
-                if p and not m:
-                    if cat == "MAQUINAS" and p["ht"] > TOL:
-                        problemas.append(f"{onde}: operadores com {fmt(p['ht'])} h trabalhadas na PRODUÇÃO e "
-                                         "nenhuma máquina apontada nessa operação e talhão.")
-                        itens.append({"onde": onde, "equipamentos": [], "maquina": [0.0, 0.0],
-                                      "producao": [r2(p["ht"]), r2(p["hi"])]})
-                    continue
-                if abs(m["ht"] - p["ht"]) > TOL or abs(m["par"] - p["hi"]) > TOL:
-                    problemas.append(
-                        f"{'/'.join(m['cods'])} ({onde}): {fmt(m['ht'])} h trabalhadas e {fmt(m['par'])} h paradas; "
-                        f"na PRODUÇÃO são {fmt(p['ht'])} h trabalhadas e {fmt(p['hi'])} h improdutivas. "
-                        f"Ajustar a aba MÁQUINAS para {fmt(p['ht'])} h trabalhadas e {fmt(p['hi'])} h de paralisação.")
-                    itens.append({"onde": onde, "equipamentos": m["cods"], "maquina": [r2(m["ht"]), r2(m["par"])],
-                                  "producao": [r2(p["ht"]), r2(p["hi"])]})
-            if problemas:
-                achados.append({
-                    "id": _id("R5", cab["id"], cat), "regra": "R5", "tipo": "revisar", "grupo": ROTULO[cat],
-                    "titulo": f"{ROTULO[cat]} x PRODUÇÃO: {len(problemas)} linha(s) com horas diferentes",
-                    "deducao": problemas, "itens": itens})
-
-        # veículos x motoristas: pelo total do CDO
-        veic = [e for e in equip if e["categoria"] == "VEICULOS"]
-        if veic or any(e["categoria"] == "VEICULOS" for e in cad_equip):
-            ht_f = r2(sum(p["ht"] for p in prods if p["grupo"] == "MOTORISTAS"))
-            hi_f = r2(sum(p["hi"] for p in prods if p["grupo"] == "MOTORISTAS"))
-            ht_e, par = r2(sum(e["ht"] for e in veic)), r2(sum(e["paradas"] for e in veic))
-            problemas = []
-            if abs(ht_e - ht_f) > TOL:
-                problemas.append(f"Horas trabalhadas: VEÍCULOS {fmt(ht_e)} h x MOTORISTAS {fmt(ht_f)} h.")
-            if abs(par - hi_f) > TOL:
-                problemas.append(f"Paralisações de VEÍCULOS {fmt(par)} h x improdutivas de MOTORISTAS {fmt(hi_f)} h.")
-            if problemas:
-                achados.append({
-                    "id": _id("R5", cab["id"], "VEICULOS"), "regra": "R5", "tipo": "revisar", "grupo": "VEÍCULOS",
-                    "titulo": "VEÍCULOS x MOTORISTAS: horas não batem", "deducao": problemas})
+        dia = info["data"]
+        equip_dia = cdo.get("equip_dia") or {}
+        ht_func = {g: r2(sum(p["ht"] for p in prods if p["grupo"] == g)) for g in ("OPERADORES", "MOTORISTAS")}
+        for cat, grupo, rot in (("MAQUINAS", "OPERADORES", "MÁQUINAS"), ("VEICULOS", "MOTORISTAS", "VEÍCULOS")):
+            if cat == "VEICULOS" and not tem_veiculo:
+                continue                  # motorista sem veículo é a R2
+            if cad_ok:
+                ativos = [e for e in cad_equip if e["categoria"] == cat and not painel_ignora(e["codigo"])]
+            else:                         # sem cadastro: só o que está apontado neste CDO
+                vistos = {}
+                for e in equip:
+                    if e["categoria"] == cat and not painel_ignora(e["codigo"]):
+                        vistos.setdefault(e["asset_id"], {"id": e["asset_id"], "codigo": e["codigo"]})
+                ativos = list(vistos.values())
+            usos, h_eq = [], 0.0
+            for at in ativos:
+                lanc = equip_dia.get((dia, at["id"]))
+                if lanc is None:          # coleta antiga/sem índice do dia: usa só este CDO
+                    lanc = [(cab.get("code"), e["ht"], info["encarregado"]) for e in equip if e["asset_id"] == at["id"]]
+                for cod_cdo, ht, enc in lanc:
+                    h_eq += ht
+                    if ht > TOL:
+                        usos.append((at["codigo"], cod_cdo, ht, enc))
+            h_eq, h_f = r2(h_eq), ht_func[grupo]
+            if (h_eq <= TOL and h_f <= TOL) or abs(h_eq - h_f) <= TOL:
+                continue
+            pct = None if h_f <= TOL else round(h_eq / h_f * 100)
+            dif = r2(h_f - h_eq)
+            dicas = []
+            outros = [u for u in usos if str(u[1]) != str(cab.get("code"))]
+            if dif > 0:
+                linhas = [p for p in prods if p["grupo"] == grupo and p["ht"] > TOL]
+                dicas.append(f"{'Operadores' if grupo == 'OPERADORES' else 'Motoristas'} com {fmt(dif)} h trabalhadas "
+                             f"a mais que {rot.lower()}: passar {fmt(dif)} h de trabalhadas para improdutivas "
+                             "(máquina parada = operador improdutivo) ou apontar as horas que faltam no equipamento. "
+                             "Linhas: " + "; ".join(f"{p['operacao_cod'] or p['operacao']} talhão {p['talhao']} "
+                                                    f"{fmt(p['ht'])}+{fmt(p['hi'])} h" for p in linhas) + ".")
+            else:
+                dicas.append(f"{rot} da turma com {fmt(-dif)} h trabalhadas a mais que "
+                             f"{'operadores' if grupo == 'OPERADORES' else 'motoristas'} na PRODUÇÃO.")
+                if outros:
+                    dicas.append("Equipamento da turma apontado em outro CDO (o painel soma na turma dona do "
+                                 "cadastro): " + "; ".join(f"{u[0]} {fmt(u[2])} h no CDO {u[1]} ({u[3]})"
+                                                          for u in outros) +
+                                 " — o certo é transferir o equipamento para a turma que usou; senão, apontar "
+                                 "as horas de função neste CDO.")
+                else:
+                    dicas.append(f"Apontar {fmt(-dif)} h trabalhadas de "
+                                 f"{'operador' if grupo == 'OPERADORES' else 'motorista'} ou conferir as horas do equipamento.")
+            achados.append({
+                "id": _id("R5", cab["id"], cat, h_eq, h_f), "regra": "R5", "tipo": "revisar", "grupo": rot,
+                "titulo": f"% H. {rot}: {fmt(h_eq)} h trabalhadas de {rot.lower()} x {fmt(h_f)} h trabalhadas de "
+                          f"{'operador' if grupo == 'OPERADORES' else 'motorista'}" + (f" ({pct}%)" if pct is not None else ""),
+                "horas_equipamento": h_eq, "horas_funcao": h_f, "diferenca": dif, "deducao": dicas,
+                "usos": [{"equipamento": u[0], "cdo": u[1], "horas": r2(u[2]), "encarregado": u[3]} for u in usos]})
 
     # --- R6: horímetro (linha, sequência do dia e continuidade com o último apontamento)
     anterior = cdo.get("horimetro_anterior") or {}
@@ -586,6 +586,22 @@ def analisar_cdo(cdo, resolver_operacao=None, resolver_tipo_ativo=None):
 REGRAS = ("R1", "R2", "R3", "R4", "R5", "R6", "R7")
 
 
+def indexar_equip_dia(cdos):
+    """(data, asset_id) -> [(código do CDO, horas trabalhadas, encarregado)] de todos os CDOs lidos.
+    O painel soma as horas do equipamento na turma dona do cadastro, venha de que CDO vier."""
+    idx = {}
+    for c in cdos:
+        d = (c["cab"].get("bulletinDate") or "")[:10]
+        enc = _sub(c["cab"], "leader", "name") or ""
+        for m in c.get("maq", []):
+            aid = _sub(m, "asset", "id")
+            if aid:
+                idx.setdefault((d, aid), []).append((c["cab"].get("code"), num(m.get("workedHours")), enc))
+    for c in cdos:
+        c["equip_dia"] = idx
+    return idx
+
+
 def detectar(api, contratos, ini_iso, fim_iso, log=print):
     log(f"Correção de CDO: lendo {ini_iso} a {fim_iso}...")
     cdos = coletar(api, contratos, ini_iso, fim_iso, log)
@@ -608,6 +624,7 @@ def detectar(api, contratos, ini_iso, fim_iso, log=print):
             except Exception:
                 cache_ativo[asset_id] = None
         return cache_ativo[asset_id]
+    indexar_equip_dia(cdos)
     analises = [analisar_cdo(c, resolver, resolver_ativo) for c in cdos]
     com = [a for a in analises if a["achados"] or a["avisos"]]
     com.sort(key=lambda a: (a["contrato"], a["data"], str(a["cdo"])))

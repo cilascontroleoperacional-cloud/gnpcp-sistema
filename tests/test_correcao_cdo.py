@@ -209,16 +209,42 @@ def test_maquina_diferente_da_producao_aponta_a_linha_e_a_correcao():
     api = corrigido()
     api.maq = Fake(gntp282_errada=True).maq                        # GNTP282 talhão 1: 8 h, sem parada, 3.062 → 3.070
     xs = por_regra(det(api))
-    assert set(xs) == {"R5:MÁQUINAS", "R6:HORÍMETRO"}              # implementos e TP276 parado não são erro
-    r5 = xs["R5:MÁQUINAS"]
-    assert len(r5["deducao"]) == 1 and r5["itens"] == [{"onde": "39 talhão 1", "equipamentos": ["GNTP282"],
-                                                        "maquina": [8.0, 0.0], "producao": [1.0, 6.0]}]
-    assert r5["deducao"][0] == ("GNTP282 (39 talhão 1): 8 h trabalhadas e 0 h paradas; na PRODUÇÃO são 1 h "
-                                "trabalhadas e 6 h improdutivas. Ajustar a aba MÁQUINAS para 1 h trabalhadas e "
-                                "6 h de paralisação.")
+    assert set(xs) == {"R5:MÁQUINAS", "R6:HORÍMETRO"}              # implementos e TP276 parado não entram
+    r5 = xs["R5:MÁQUINAS"]                                         # painel: 17 h de máquina x 10 h de operador
+    assert (r5["horas_equipamento"], r5["horas_funcao"], r5["diferenca"]) == (17.0, 10.0, -7.0)
+    assert r5["titulo"] == "% H. MÁQUINAS: 17 h trabalhadas de máquinas x 10 h trabalhadas de operador (170%)"
+    assert "7 h trabalhadas a mais" in r5["deducao"][0] and "Apontar 7 h trabalhadas de operador" in r5["deducao"][1]
     r6 = xs["R6:HORÍMETRO"]["deducao"]
     assert r6 == ["GNTP282: linha do talhão 2 começa em 3.064, mas a anterior (talhão 1) terminou em 3.070.",
                   "GNTP282: o dia começa em 3.062, mas o último horímetro apontado foi 3.064 (CDO 53437 de 11/11)."]
+
+
+def test_operador_a_mais_que_maquina_vai_para_improdutiva():
+    # caso real do CDO 53547 (Jean, 13/11): operador 40 h trabalhadas x tratores 32 h
+    api = corrigido()
+    api.prod[4]["workedHours"] = "11.00"                           # gradagem T13: operador 3 → 11 h (8 h a mais)
+    api.mdo[3]["dailyJourney"] = "16.00"                           # presença acompanha (R1 fecha)
+    xs = por_regra(det(api))
+    assert set(xs) == {"R5:MÁQUINAS"}
+    r5 = xs["R5:MÁQUINAS"]
+    assert (r5["horas_equipamento"], r5["horas_funcao"], r5["diferenca"]) == (10.0, 18.0, 8.0)
+    assert "56%" in r5["titulo"] and "passar 8 h de trabalhadas para improdutivas" in r5["deducao"][0]
+    assert "110 talhão 13 11+0 h" in r5["deducao"][0]
+
+
+def test_maquina_da_turma_apontada_em_outro_cdo():
+    # caso real 13/11: GNTP241 é do cadastro da turma do Renildo e foi usada no CDO 53530 (Gabriel Felipe);
+    # o painel soma as 8 h na turma dona do cadastro
+    api = corrigido()
+    api.ativos.append(ativo("GNTP241", "Trator de Pneu Leve", "Máquinas"))
+    cdo = cc.coletar(api, LACAN, "2026-11-12", "2026-11-12", log=lambda m: None)[0]
+    idx = cc.indexar_equip_dia([cdo])
+    idx[("2026-11-12", "a-GNTP241")] = [(53530, 8.0, "GABRIEL FELIPE")]
+    a = cc.analisar_cdo(cdo)
+    r5 = {x["regra"] + ":" + x["grupo"]: x for x in a["achados"]}["R5:MÁQUINAS"]
+    assert (r5["horas_equipamento"], r5["horas_funcao"]) == (18.0, 10.0)
+    assert "GNTP241 8 h no CDO 53530 (GABRIEL FELIPE)" in r5["deducao"][1] and "transferir" in r5["deducao"][1]
+    assert {"equipamento": "GNTP241", "cdo": 53530, "horas": 8.0, "encarregado": "GABRIEL FELIPE"} in r5["usos"]
 
 
 def test_horimetro_diferente_das_horas_da_linha():
@@ -247,7 +273,7 @@ def test_caminhao_no_cadastro_sem_apontar():
     xs = por_regra(det(api))
     assert set(xs) == {"R4:EQUIPAMENTOS", "R5:VEÍCULOS"}            # NÃO oferece passar motorista p/ improdutiva
     assert "CM01" in xs["R4:EQUIPAMENTOS"]["deducao"][0]
-    assert xs["R5:VEÍCULOS"]["deducao"][0] == "Horas trabalhadas: VEÍCULOS 0 h x MOTORISTAS 8 h."
+    assert xs["R5:VEÍCULOS"]["titulo"] == "% H. VEÍCULOS: 0 h trabalhadas de veículos x 8 h trabalhadas de motorista (0%)"
 
 
 def test_colaborador_e_maquina_da_turma_nao_lancados():
@@ -257,16 +283,15 @@ def test_colaborador_e_maquina_da_turma_nao_lancados():
     xs = por_regra(det(api))
     assert set(xs) == {"R3:MÃO DE OBRA", "R4:EQUIPAMENTOS", "R5:MÁQUINAS"}
     assert "RENILDO" in xs["R3:MÃO DE OBRA"]["deducao"][0] and "GNTP302" in xs["R4:EQUIPAMENTOS"]["deducao"][0]
-    assert len(xs["R5:MÁQUINAS"]["deducao"]) == 4 and "110 talhão 13: operadores com 3 h" in xs["R5:MÁQUINAS"]["deducao"][0]
+    r5 = xs["R5:MÁQUINAS"]                                         # sem GNTP302: 2 h de máquina x 10 h de operador
+    assert (r5["horas_equipamento"], r5["horas_funcao"]) == (2.0, 10.0) and "passar 8 h" in r5["deducao"][0]
 
 
 def test_operador_sem_as_horas_paradas_da_maquina():
     api = corrigido()
     api.prod[0]["unproductiveHours"] = "0.00"                      # operador sem as 6 h improdutivas do talhão 1
     xs = por_regra(det(api))
-    assert set(xs) == {"R1:OPERADORES", "R5:MÁQUINAS", "R5:IMPLEMENTOS"}
-    assert "GNTP282 (39 talhão 1): 1 h trabalhadas e 6 h paradas; na PRODUÇÃO são 1 h trabalhadas e 0 h" in xs["R5:MÁQUINAS"]["deducao"][0]
-    assert xs["R5:IMPLEMENTOS"]["itens"][0]["equipamentos"] == ["GNSS26"]
+    assert set(xs) == {"R1:OPERADORES"}                            # painel não compara paralisação x improdutiva
 
 
 def test_producao_zerada_com_hora_trabalhada():
