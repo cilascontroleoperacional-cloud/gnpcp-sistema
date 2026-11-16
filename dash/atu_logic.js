@@ -1,7 +1,7 @@
 
 /* ============================== PCM ============================== */
-var PCM_COLS=["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2"];
-var PCM_ENC=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1];
+var PCM_COLS=["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2","cdo"];
+var PCM_ENC=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0];   // cdo: número do CDO (sem dicionário)
 
 function xlDate(v){
   if(v==null)return null;
@@ -58,7 +58,8 @@ function processPCM(wb){
       tp==='TRABALHADA'?h:0, tp!=='TRABALHADA'?h:0,
       tp==='Mec\u00e2nicas'?h:0, tp==='Operacionais'?h:0, tp==='\u00c0 disposi\u00e7\u00e3o'?h:0,
       Math.round(tn(r[col['Pre\u00e7o do Recurso']])*1e4)/1e4,
-      Math.round(lim*1e6)/1e6, cs(r[col['Compet\u00eancia2']])]);
+      Math.round(lim*1e6)/1e6, cs(r[col['Compet\u00eancia2']]),
+      (function(v){ if(v==null||v==='')return ''; var n=Number(v); return isNaN(n)?String(v).trim():n; })(col['CDO']!=null?r[col['CDO']]:null)]);
   }
   if(!out.length)throw new Error('Nenhum registro PCM v\u00e1lido encontrado');
   addLog('  '+out.length+' registros PCM (at\u00e9 '+dtMax+')');
@@ -292,9 +293,9 @@ function injetarPatchParadas(h){
 '<button class="close-btn" onclick="document.getElementById(\'paradasDrillModal\').classList.remove(\'open\')">&times;<\/button>'+
 '<h3 id="paradasDrillTitle">Detalhamento<\/h3>'+
 '<table id="paradasDrillTable"><thead><tr>'+
-'<th>Data<\/th><th>Máquina<\/th><th>Descrição<\/th><th>Encarregado<\/th><th>Competência<\/th><th style="text-align:right">Horas Perdidas<\/th>'+
+'<th>CDO<\/th><th>Data<\/th><th>Máquina<\/th><th>Descrição<\/th><th>Encarregado<\/th><th>Competência<\/th><th style="text-align:right">Horas Perdidas<\/th>'+
 '<\/tr><\/thead><tbody id="paradasDrillBody"><\/tbody>'+
-'<tfoot><tr style="background:#12294D;font-weight:700"><td colspan="5">TOTAL<\/td><td id="paradasDrillTotal" style="text-align:right;padding:7px 10px"><\/td><\/tr><\/tfoot>'+
+'<tfoot><tr style="background:#12294D;font-weight:700"><td colspan="6">TOTAL<\/td><td id="paradasDrillTotal" style="text-align:right;padding:7px 10px"><\/td><\/tr><\/tfoot>'+
 '<\/table><\/div><\/div>\n'+
 '<'+'script>\n'+
 '(function(){\n'+
@@ -361,6 +362,7 @@ function injetarPatchParadas(h){
 '  document.getElementById("paradasDrillBody").innerHTML=rows.map(function(r,i){\n'+
 '    var bg=i%2===0?"rgba(18,41,77,.4)":"transparent";\n'+
 '    return \'<tr style="background:\'+bg+\'">\'+\n'+
+'      \'<td style="white-space:nowrap;font-weight:700;color:#F5B041">\'+((IDX.cdo!=null&&r[IDX.cdo]!==undefined&&r[IDX.cdo]!=="")?r[IDX.cdo]:"—")+\'<\/td>\'+\n'+
 '      \'<td style="white-space:nowrap">\'+fmtDt(r[IDX.dt])+\'<\/td>\'+\n'+
 '      \'<td>\'+( r[IDX.maq]||"N/D")+\'<\/td>\'+\n'+
 '      \'<td style="color:#8AA0C0;font-size:11px">\'+( r[IDX.desc]||"")+\'<\/td>\'+\n'+

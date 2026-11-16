@@ -1313,7 +1313,7 @@ Chart.defaults.set('plugins.datalabels', { display:false });
    Dados embarcados + vínculo com planilha local (File System Access API)
    ========================================================= */
 
-const COLS = ["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2"];
+const COLS = ["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2","cdo"];
 const IDX = {}; COLS.forEach((c,i)=>IDX[c]=i);
 
 const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -2553,7 +2553,7 @@ const HEADER_ALIASES = {
   tpar: ['Tipo Paralização','Tipo Paralizacao'], par: ['Paralização','Paralizacao'],
   cls: ['Classificacao_BI','Classificação_BI'], mapa: ['Mapa_Perdas'],
   h: ['Horas'], preco: ['Preço do Recurso','Preco do Recurso'], limite: ['Limites de Perdas','Limite de Perdas'],
-  comp2: ['Competência2','Competencia2']
+  comp2: ['Competência2','Competencia2'], cdo: ['CDO']
 };
 
 function excelDateToISO(v){
@@ -2625,7 +2625,8 @@ function processWorkbook(wb, silent, sourceLabel){
       String(get('cls')||'N/D').trim(),
       String(get('mapa')||'N/D').trim(),
       horasVal, htrabVal, hperdVal,
-      pmecVal, popeVal, pdispVal, toNum(get('preco')), limiteVal, String(get('comp2')||'N/D').trim()
+      pmecVal, popeVal, pdispVal, toNum(get('preco')), limiteVal, String(get('comp2')||'N/D').trim(),
+      String(get('cdo')||'').trim()
     ]);
   }
   if(!newRows.length){ if(!silent) alert('Nenhuma linha de dados válida foi encontrada (verifique a coluna de Data).'); return false; }
