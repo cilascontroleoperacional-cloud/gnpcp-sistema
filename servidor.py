@@ -749,7 +749,10 @@ def processar_pdfs(lidos, erros, gravar, etapa, api=None):
     etapa["nome"] = "soma da base (CDO_PRODUCAO)"
     bases = {}
     for it in plano:
-        total, por_bol, tipo = fat.soma_base(pl, it["gn"], it["competencia"])
+        corte = datetime.strptime(it["gerado_em"][:10], "%d/%m/%Y") - timedelta(days=1)
+        corte_serial = (corte - datetime(1899, 12, 30)).days
+        total, por_bol, tipo = fat.soma_base(pl, it["gn"], it["competencia"], corte_serial)
+        it["dados_ate"] = corte.strftime("%d/%m/%Y")
         bases[(it["gn"], it["competencia"])] = (por_bol, tipo)
         it["fat_base"] = total
         it["diferenca"] = round(total - it["fat_pdf"], 2)

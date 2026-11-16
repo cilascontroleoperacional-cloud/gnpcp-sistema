@@ -245,15 +245,27 @@ class Planilha:
 
 
 # ---------------------------------------------------------------- base
-def soma_base(pl, gn, competencia):
+def _serial(v):
+    """Data da planilha (serial ou 'dd/mm/aaaa' vindo de FORMATTED_STRING) -> nº de dias inteiro."""
+    if isinstance(v, (int, float)):
+        return int(v)
+    try:
+        return (datetime.strptime(str(v).strip()[:10], "%d/%m/%Y") - datetime(1899, 12, 30)).days
+    except ValueError:
+        return 0
+
+
+def soma_base(pl, gn, competencia, ate_serial=None):
     """
     Soma de CDO_PRODUCAO!AI (Valor Total) para CR + Competência, total e por boletim.
+    ate_serial (data serial do Sheets): ignora boletins com Data posterior — o PDF do Power BI
+    traz dados só até a véspera do dia em que foi gerado.
     Também devolve o mapa (operação, função) -> Tipo Recurso do CR (maioria no histórico),
     que diz qual linha do boletim carrega o valor (só 'Principal' fatura).
     """
-    a, d, f, n_, ab, ag, ai = pl.batch_get([
-        "CDO_PRODUCAO!A6:A", "CDO_PRODUCAO!D6:D", "CDO_PRODUCAO!F6:F", "CDO_PRODUCAO!N6:N",
-        "CDO_PRODUCAO!AB6:AB", "CDO_PRODUCAO!AG6:AG", "CDO_PRODUCAO!AI6:AI"])
+    a, b, d, f, n_, ab, ag, ai = pl.batch_get([
+        "CDO_PRODUCAO!A6:A", "CDO_PRODUCAO!B6:B", "CDO_PRODUCAO!D6:D", "CDO_PRODUCAO!F6:F",
+        "CDO_PRODUCAO!N6:N", "CDO_PRODUCAO!AB6:AB", "CDO_PRODUCAO!AG6:AG", "CDO_PRODUCAO!AI6:AI"])
     n = max(len(a), len(d), len(ag), len(ai))
     cel = lambda col, i: (col[i][0] if i < len(col) and col[i] else "")
     total, por_bol, cont = 0.0, {}, {}
@@ -266,6 +278,9 @@ def soma_base(pl, gn, competencia):
             cont.setdefault(k, {}).setdefault(tp, 0)
             cont[k][tp] += 1
         if cel(ag, i) == competencia:
+            if ate_serial is not None:      # PDF traz dados até a véspera da geração:
+                if _serial(cel(b, i)) > ate_serial:   # boletins de datas posteriores ficam fora
+                    continue
             try:
                 v = float(cel(ai, i) or 0)
             except (TypeError, ValueError):
@@ -320,7 +335,9 @@ def diagnosticar(api, gn, fim_competencia, base_por_bol, tipo, ate_iso=None):
             difs.append({"boletim": cod, "prodcontrol": va, "base": vb,
                          "diferenca": round(vb - va, 2),
                          "itens_prodcontrol": detalhe.get(cod, []),
-                         "causa_provavel": ("boletim ausente na base" if vb == 0 else
+                         "causa_provavel": ("boletim na base com valor 0 — tarifa não cadastrada na PRECOS"
+                                            if vb == 0 and cod in base_por_bol else
+                                            "boletim ausente na base" if vb == 0 else
                                             "boletim não existe mais no ProdControl" if va == 0 else
                                             "preço ou quantidade diferente")})
     return difs
