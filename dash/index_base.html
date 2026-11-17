@@ -1713,7 +1713,9 @@ function rotuloCurto(s, n, nMob){ s = String(s); var m = MOBILE() ? (nMob || 16)
 
 /* ===== Supervisores (CR1421 celular) — link ?s=flavio / ?s=renato ===== */
 function supNorm(t){ return String(t==null?'':t).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
-function supCfg(){ return window.__SUPS || null; }
+function supCfg(){ var C = window.__SUPS; if(!C) return null; var o = {}; Object.keys(C).forEach(function(k){ if(k.charAt(0) !== '_') o[k] = C[k]; }); return Object.keys(o).length ? o : null; }
+/* encarregados da turma de apoio e manutenção (sem meta, faturamento e produção) */
+function supApoio(e){ var C = window.__SUPS; var L = (C && C._apoio) || []; return L.map(supNorm).indexOf(supNorm(e)) >= 0; }
 function supParam(){ try{ return supNorm(new URLSearchParams(location.search).get('s')).toLowerCase(); }catch(e){ return ''; } }
 /* grupos visíveis: o do link ou, sem link, todos */
 function supGrupos(){
@@ -1771,7 +1773,7 @@ function renderSupMaq(){
   var crs = [...new Set(rows.map(function(r){return r[IDX.cr];}))].join(' + ') || 'Contrato';
   h += linha('ctr', 'Contrato ' + crs, maqs(rows) + ' máquinas', computeKPIs(rows));
   G.forEach(function(g){
-    var rg = rows.filter(function(r){ return supGrupoLinhaPCM(r) === g.k; });
+    var rg = rows.filter(function(r){ return supGrupoLinhaPCM(r) === g.k && !supApoio(r[IDX.enc]); });
     h += linha('sup', 'Supervisor ' + g.nome, rg.length ? maqs(rg) + ' máquinas · total da equipe' : 'sem apontamento no filtro', rg.length ? computeKPIs(rg) : null);
     var porEnc = {};
     rg.forEach(function(r){ var e = r[IDX.enc] || 'N/D'; (porEnc[e] = porEnc[e] || []).push(r); });
@@ -1801,13 +1803,14 @@ function supFatEquipes(mv, t){
     if(!frSel.cr.has(r[C_CR]) || !frSel.comp.has(r[C_CMP])) return;
     var vt = r[C_VT] || 0, mo = temFun && SUP_MO.test(FR4.dim.fun[r[C_FUN]] || '');
     fatTot += vt; if(mo) fatMO += vt;
+    if(supApoio(FR4.dim.enc[r[C_ENC]])) return;
     var x = pegar(FR4.dim.enc[r[C_ENC]] || 'N/D');
     if(mo && FR4.dim.tip[r[C_TIP]] === 'Principal'){ var c = r[C_CONT] || 0; x.hd += c; hdTot += c; }
     var g = supGrupoDe(FR4.dim.sup[r[C_SUP]]); if(!g) return;
     x.fat += vt; x.g[g] = (x.g[g] || 0) + vt;
   });
   (typeof ROWS !== 'undefined' ? ROWS : []).forEach(function(r){
-    if(compNomes.indexOf(r[IDX.comp2]) < 0 || !crsAtivos.has(r[IDX.cr]) || !isDM(r) || String(r[IDX.tiporec]) !== 'Principal') return;
+    if(compNomes.indexOf(r[IDX.comp2]) < 0 || !crsAtivos.has(r[IDX.cr]) || !isDM(r) || String(r[IDX.tiporec]) !== 'Principal' || supApoio(r[IDX.enc])) return;
     var h = r[IDX.h] || 0; hmTot += h;
     var x = enc[supNorm(r[IDX.enc])]; if(x) x.hm += h;
   });

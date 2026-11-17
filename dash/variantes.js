@@ -6,7 +6,9 @@ var VARIANTES=[
   {pasta:'cr1421',       titulo:'GN Florestal \u00b7 GN1421 \u2014 INNOVATECH/COLPAR',                crs:['GN1421'],           fat:true, mobileResumo:true,
    /* celular: ?s=flavio / ?s=renato — produção do José Fernando conta para o Renato */
    supervisores:{flavio:{nome:'Fl\u00e1vio',sups:['FLAVIO BONIFACIO DE SOUZA']},
-                 renato:{nome:'Renato',sups:['RENATO DE SOUZA PEREIRA','JOSE FERNANDO MACHADO GARCIA']}}}
+                 renato:{nome:'Renato',sups:['RENATO DE SOUZA PEREIRA','JOSE FERNANDO MACHADO GARCIA']},
+                 /* turma de apoio e manutenção: sem meta, faturamento e produção — fora das tabelas por equipe */
+                 _apoio:['BRUNO HENRIQUE NEVES FARIA','GIOVANNI RODRIGUES BORGES MORAES']}}
 ];
 var DESCS={
   'gn-ms':'Compilado geral \u00b7 todos os CRs',
