@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script>window.__MOBILE_RESUMO=false;/*__MR__*/if(window.__MOBILE_RESUMO)document.documentElement.classList.add("mob-resumo");</script>
+<script>window.__MOBILE_RESUMO=false;/*__MR__*/window.__SUPS=null;/*__SUPS__*/if(window.__MOBILE_RESUMO)document.documentElement.classList.add("mob-resumo");</script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -288,6 +288,46 @@ tbody tr:hover{background:rgba(46,95,163,.12);}
 .mr-tab td.mec{color:#E74C3C; font-weight:700;} .mr-tab td.ope{color:#F39C12;} .mr-tab td.dis{color:#5DADE2;}
 .mr-tab tr.tot td{background:var(--panel2); color:#fff; font-weight:800;}
 .mr-tab .vazio{color:#27AE60; text-align:left; padding:10px 6px;}
+/* ===== CR1421 celular: visão por supervisor — 17/11/2026 ===== */
+.sup-tab{width:100%; border-collapse:collapse; font-size:13px;}
+.sup-tab th{background:var(--panel2); color:#fff; font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; padding:8px 6px; text-align:center;}
+.sup-tab th:first-child{text-align:left;}
+.sup-tab td{padding:9px 6px; border-bottom:1px solid var(--border); text-align:center; color:var(--text); font-variant-numeric:tabular-nums;}
+.sup-tab td:first-child{text-align:left;}
+.sup-tab td.n{font-size:17px; font-weight:800;}
+.sup-tab .ok{color:#27AE60;} .sup-tab .ruim{color:#E74C3C;} .sup-tab .med{color:#F39C12;}
+.sup-tab tr.ctr td{background:var(--panel2); color:#fff; font-weight:800;}
+.sup-tab tr.ctr td.n.ok{color:#5BE38F;} .sup-tab tr.ctr td.n.ruim{color:#FF7B6E;} .sup-tab tr.ctr td.n.med{color:#FFC15C;}
+.sup-tab tr.sup td{background:rgba(245,166,35,.13); font-weight:800;}
+.sup-tab tr.enc td:first-child{padding-left:16px; font-size:12.5px;}
+.sup-tab .sub{display:block; font-size:10.5px; font-weight:500; color:var(--text2);}
+.sup-leg{display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:var(--text2); margin:4px 0 10px; line-height:1.35;}
+.sup-leg b{color:var(--text);}
+.fr-res{background:linear-gradient(135deg,#1B3A6B,#132a5a); border-radius:16px; padding:16px 14px; margin-bottom:14px; color:#fff;}
+.fr-res .t{font-size:11px; color:#9FB0CC; letter-spacing:.06em; text-transform:uppercase; font-weight:700;}
+.fr-res .lbl{font-size:12px; color:#C9D6EA; margin-top:10px;}
+.fr-res .fat{font-size:31px; font-weight:900; line-height:1.1;}
+.fr-res .g3{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;}
+.fr-res .g3 div{background:rgba(0,0,0,.22); border-radius:12px; padding:10px;}
+.fr-res .g3 span{display:block; font-size:11px; color:#C9D6EA; text-transform:uppercase; letter-spacing:.04em; font-weight:700;}
+.fr-res .g3 b{display:block; font-size:19px; font-weight:800; margin-top:2px;}
+.fr-res .g3 .rit{grid-column:1 / -1; text-align:center;}
+.fr-res .g3 .rit b{font-size:34px;}
+.fr-res .frase{margin-top:10px; font-size:13px; line-height:1.4; color:#E3EBF7;}
+.fr-eq{background:var(--panel,#132643); border:1px solid var(--border,#23406b); border-radius:14px; padding:13px; margin-bottom:12px;}
+.fr-eq h3{margin:0 0 2px; font-size:15px; color:var(--text,#fff);}
+.fr-eq .cap2{font-size:11.5px; color:var(--text2,#9FB0CC); margin-bottom:10px; line-height:1.35;}
+.fr-eq .g3{display:grid; grid-template-columns:1fr 1fr; gap:7px;}
+.fr-eq .g3 div{background:rgba(0,0,0,.18); border-radius:10px; padding:8px 9px;}
+.fr-eq .g3 span{display:block; font-size:10px; color:var(--text2,#8ea2c4); text-transform:uppercase; letter-spacing:.04em; font-weight:700;}
+.fr-eq .g3 b{font-size:15px; color:var(--text,#fff);}
+.fr-eq .g3 .rit{grid-column:1 / -1; text-align:center;}
+.fr-eq .g3 .rit b{font-size:27px;}
+.fr-eq .sup-tab{margin-top:10px;}
+@media (max-width:760px){
+  html.mob-resumo #frPgEvo, html.mob-resumo #frGauges, html.mob-resumo #frMovTabela{display:none !important;}
+}
+
 
 /* ===================== MOBILE (≤760px) — 10/11/2026 ===================== */
 .f-dm-toggle{display:flex; gap:10px; align-items:flex-start; padding:12px 4px; margin:2px 0 6px; cursor:pointer;
@@ -1100,6 +1140,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <h3>Totais de horas <span class="tag" id="mrHorasTag"></span></h3>
       <div class="mr-horas" id="mrHoras"></div>
     </div>
+    <div class="mr-only panel" id="mrSupBox" style="display:none">
+      <h3>DM e TU <span class="tag" id="mrSupTag"></span></h3>
+      <div class="sup-leg"><span><b>DM</b> = % do tempo em que a máquina estava boa (sem quebra). Meta 85%.</span><span><b>TU</b> = % do tempo em que a máquina trabalhou. Meta 71%.</span></div>
+      <div class="mr-tab-wrap"><table class="sup-tab" id="mrSupTab"></table></div>
+    </div>
 
     <!-- 1º TIPOS DE PARADAS (mês a mês) -->
     <div class="grid">
@@ -1313,7 +1358,7 @@ Chart.defaults.set('plugins.datalabels', { display:false });
    Dados embarcados + vínculo com planilha local (File System Access API)
    ========================================================= */
 
-const COLS = ["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2","cdo"];
+const COLS = ["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2","cdo","sup"];
 const IDX = {}; COLS.forEach((c,i)=>IDX[c]=i);
 
 const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -1665,6 +1710,150 @@ function MOBILE(){ return window.matchMedia && window.matchMedia('(max-width:760
 function rotuloCurto(s, n, nMob){ s = String(s); var m = MOBILE() ? (nMob || 16) : n; return s.length > m ? s.slice(0, m - 1) + '…' : s; }
 
 
+
+/* ===== Supervisores (CR1421 celular) — link ?s=flavio / ?s=renato ===== */
+function supNorm(t){ return String(t==null?'':t).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
+function supCfg(){ return window.__SUPS || null; }
+function supParam(){ try{ return supNorm(new URLSearchParams(location.search).get('s')).toLowerCase(); }catch(e){ return ''; } }
+/* grupos visíveis: o do link ou, sem link, todos */
+function supGrupos(){
+  var C = supCfg(); if(!C) return [];
+  var ks = Object.keys(C), p = supParam();
+  if(p && C[p]) ks = [p];
+  return ks.map(function(k){ return {k:k, nome:C[k].nome, sups:C[k].sups.map(supNorm)}; });
+}
+function supGrupoDe(nomeSup){
+  var C = supCfg(); if(!C) return null; var n = supNorm(nomeSup); if(!n) return null;
+  for(var k in C){ if(C[k].sups.map(supNorm).indexOf(n) >= 0) return k; }
+  return null;
+}
+/* encarregado -> grupo pelo faturamento (competência mais recente em que aparece) */
+var __ENC2G = null;
+function supEnc2G(){
+  if(__ENC2G) return __ENC2G;
+  if(typeof FR4 === 'undefined' || !FR4 || !FR4.rows || typeof C_SUP === 'undefined') return {};   /* faturamento ainda não carregou */
+  __ENC2G = {};
+  var ord = {}; FR4.dim.comp.forEach(function(c,i){ ord[i] = (typeof frCompOrd==='function') ? frCompOrd(c) : i; });
+  var best = {};
+  FR4.rows.forEach(function(r){
+    var g = supGrupoDe(FR4.dim.sup[r[C_SUP]]); if(!g) return;
+    var e = supNorm(FR4.dim.enc[r[C_ENC]]), o = ord[r[C_CMP]];
+    if(best[e] === undefined || o >= best[e]){ best[e] = o; __ENC2G[e] = g; }
+  });
+  return __ENC2G;
+}
+function supGrupoLinhaPCM(r){
+  var g = (IDX.sup != null) ? supGrupoDe(r[IDX.sup]) : null;
+  return g || supEnc2G()[supNorm(r[IDX.enc])] || null;
+}
+/* nome curto = dois primeiros nomes (ex.: CARLOS MANOEL OLIVEIRA DA SILVA -> Carlos Manoel) */
+function supNomeCurto(n){ var cap = function(w){ return w.charAt(0) + w.slice(1).toLowerCase(); };
+  var p = String(n||'').trim().split(/\s+/).filter(function(w){ return !/^(DE|DA|DO|DOS|DAS|E)$/i.test(w); });
+  return p.slice(0,2).map(cap).join(' ') || String(n||''); }
+function supPct(v){ return (v==null || isNaN(v)) ? '—' : Math.round(v*100) + '%'; }
+
+function renderSupMaq(){
+  var box = document.getElementById('mrSupBox'); if(!box) return;
+  var G = supGrupos();
+  if(!document.documentElement.classList.contains('mob-resumo') || !G.length){ box.style.display='none'; return; }
+  box.style.display='';
+  var rows = FILTERED;
+  var comps = [...new Set(rows.map(function(r){return r[IDX.comp2];}).filter(Boolean))];
+  document.getElementById('mrSupTag').textContent = comps.length===1 ? comps[0] : (comps.length + ' competências');
+  var cl = function(v, meta){ return v==null ? '' : (v >= meta ? 'ok' : 'ruim'); };
+  var linha = function(cls, nome, sub, k){
+    var dm = k && k.cal > 0 ? k.dm : null, tu = k && k.cal > 0 ? k.tu : null;
+    return '<tr class="'+cls+'"><td>'+_mrEsc(nome)+(sub?'<span class="sub">'+_mrEsc(sub)+'</span>':'')+'</td>'+
+      '<td class="n '+cl(dm, META_DM)+'">'+supPct(dm)+'</td><td class="n '+cl(tu, META_TU)+'">'+supPct(tu)+'</td></tr>';
+  };
+  var maqs = function(rs){ return new Set(rs.map(function(r){return r[IDX.maq];})).size; };
+  var h = '<thead><tr><th>Equipe</th><th>DM</th><th>TU</th></tr></thead><tbody>';
+  var crs = [...new Set(rows.map(function(r){return r[IDX.cr];}))].join(' + ') || 'Contrato';
+  h += linha('ctr', 'Contrato ' + crs, maqs(rows) + ' máquinas', computeKPIs(rows));
+  G.forEach(function(g){
+    var rg = rows.filter(function(r){ return supGrupoLinhaPCM(r) === g.k; });
+    h += linha('sup', 'Supervisor ' + g.nome, rg.length ? maqs(rg) + ' máquinas · total da equipe' : 'sem apontamento no filtro', rg.length ? computeKPIs(rg) : null);
+    var porEnc = {};
+    rg.forEach(function(r){ var e = r[IDX.enc] || 'N/D'; (porEnc[e] = porEnc[e] || []).push(r); });
+    Object.keys(porEnc).sort(function(a,b){ return supNomeCurto(a).localeCompare(supNomeCurto(b)); }).forEach(function(e){
+      h += linha('enc', supNomeCurto(e), maqs(porEnc[e]) + ' máq.', computeKPIs(porEnc[e]));
+    });
+  });
+  document.getElementById('mrSupTab').innerHTML = h + '</tbody>';
+}
+window.addEventListener('load', function(){ try{ renderSupMaq(); }catch(e){ console.error('equipes', e); } });
+
+/* Faturamento por equipe: meta da equipe = meta do contrato × (horas de máquina da equipe ÷ horas de máquina
+   das equipes que faturaram na competência). Projeção usa os mesmos dias úteis/trabalhados do contrato. */
+function supFatEquipes(mv, t){
+  var G = supGrupos(); if(!G.length || typeof FR4 === 'undefined') return null;
+  var compIdx = FR4.dim.comp.map(function(_,i){return i;}).filter(function(i){ return frSel.comp && frSel.comp.has(i); });
+  var compNomes = compIdx.map(function(i){ return FR4.dim.comp[i]; });
+  var fator = t.fat > 0 ? t.proj / t.fat : 1;            // = dias úteis ÷ dias trabalhados (1 em mês fechado)
+  var enc = {};                                           // chave: encarregado normalizado
+  FR4.rows.forEach(function(r){
+    if(!frSel.cr.has(r[C_CR]) || !frSel.comp.has(r[C_CMP])) return;
+    var g = supGrupoDe(FR4.dim.sup[r[C_SUP]]); if(!g) return;
+    var nome = FR4.dim.enc[r[C_ENC]] || 'N/D', e = supNorm(nome);
+    var x = enc[e] = enc[e] || {nome:nome, fat:0, h:0, g:{}};
+    x.fat += r[C_VT] || 0; x.g[g] = (x.g[g] || 0) + (r[C_VT] || 0);
+  });
+  var crsAtivos = new Set(FR4.dim.cr.filter(function(_,i){ return frSel.cr.has(i); }));
+  (typeof ROWS !== 'undefined' ? ROWS : []).forEach(function(r){
+    if(compNomes.indexOf(r[IDX.comp2]) < 0 || !crsAtivos.has(r[IDX.cr])) return;
+    var x = enc[supNorm(r[IDX.enc])]; if(x) x.h += r[IDX.h] || 0;
+  });
+  var hTot = 0;
+  Object.keys(enc).forEach(function(e){
+    var x = enc[e]; x.grupo = Object.keys(x.g).sort(function(a,b){ return x.g[b]-x.g[a]; })[0];
+    if(x.fat > 0) hTot += x.h;
+  });
+  return G.map(function(g){
+    var lista = Object.keys(enc).map(function(e){ return enc[e]; }).filter(function(x){ return x.grupo === g.k && (x.fat > 0 || x.h > 0); });
+    lista.forEach(function(x){
+      x.meta = (x.fat > 0 && hTot > 0) ? t.meta * x.h / hTot : 0;
+      x.proj = x.fat * fator; x.rit = x.meta > 0 ? x.proj / x.meta : null;
+    });
+    var s = lista.reduce(function(a,x){ a.fat += x.fat; a.meta += x.meta; return a; }, {fat:0, meta:0});
+    s.proj = s.fat * fator; s.rit = s.meta > 0 ? s.proj / s.meta : null;
+    lista.sort(function(a,b){ return b.fat - a.fat; });
+    return {g:g, tot:s, encs:lista};
+  });
+}
+function frCorRit(p){ return p==null ? '' : (p >= 1 ? '#27AE60' : (p >= 0.8 ? '#F39C12' : '#E74C3C')); }
+function frMobResumoHTML(mv, t, t_rit){
+  var crs = mv.map(function(m){ return m.cr; }).join(' + ');
+  var G = supGrupos(), C = supCfg(), um = G.length === 1 && C && Object.keys(C).length > 1;
+  var cor = frCorRit(t_rit);
+  var h = '<div class="fr-res"><div class="t">' + (um ? 'Supervisor ' + _mrEsc(G[0].nome) + ' · ' : '') + 'Contrato ' + _mrEsc(crs) + '</div>' +
+    '<div class="lbl">Faturado até agora</div><div class="fat">' + frMoeda(t.fat) + '</div>' +
+    '<div class="g3"><div><span>Projeção do mês</span><b>' + frMoeda(t.proj) + '</b></div>' +
+    '<div><span>Meta do mês</span><b>' + frMoeda(t.meta) + '</b></div>' +
+    '<div class="rit"><span>Ritmo</span><b style="color:' + cor + '">' + frPct(t_rit) + '</b></div></div>' +
+    '<div class="frase">Se continuar neste ritmo, o contrato fecha o mês com <b>' + frMoeda(t.proj) + '</b>, que é <b style="color:' + cor + '">' + frPct(t_rit) + ' da meta</b>.</div></div>';
+  var eq = supFatEquipes(mv, t);
+  if(eq) eq.forEach(function(q){
+    var c2 = frCorRit(q.tot.rit);
+    h += '<div class="fr-eq"><h3>Equipe do supervisor ' + _mrEsc(q.g.nome) + '</h3>' +
+      '<div class="cap2">Meta da equipe = parte da meta do contrato proporcional às horas de máquina da equipe na competência.</div>' +
+      '<div class="g3"><div><span>Faturado</span><b>' + frMoeda(q.tot.fat) + '</b></div>' +
+      '<div><span>Projeção</span><b>' + frMoeda(q.tot.proj) + '</b></div>' +
+      '<div><span>Meta da equipe</span><b>' + frMoeda(q.tot.meta) + '</b></div>' +
+      '<div><span>% do contrato</span><b>' + frPct(t.fat > 0 ? q.tot.fat / t.fat : 0) + '</b></div>' +
+      '<div class="rit"><span>Ritmo da equipe</span><b style="color:' + c2 + '">' + (q.tot.rit==null ? '—' : frPct(q.tot.rit)) + '</b></div></div>';
+    if(q.encs.length){
+      h += '<table class="sup-tab"><thead><tr><th>Encarregado</th><th>Faturado</th><th>Ritmo</th></tr></thead><tbody>';
+      q.encs.forEach(function(x){
+        var r = x.fat <= 0 ? '<span class="sub">apoio</span>' : (x.rit==null ? '<span class="sub">sem máquina</span>' : '<span style="color:' + frCorRit(x.rit) + '">' + frPct(x.rit) + '</span>');
+        h += '<tr class="enc"><td>' + _mrEsc(supNomeCurto(x.nome)) + '</td><td>' + frMoeda(x.fat) + '</td><td class="n">' + r + '</td></tr>';
+      });
+      h += '</tbody></table>';
+    }
+    h += '</div>';
+  });
+  return h;
+}
+
 function _mrEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function _mrH(v){ return (Math.round(v*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + 'h'; }
 function renderMobileResumo(){
@@ -1745,6 +1934,7 @@ function applyFilters(){
   renderKPIs();
   renderAllCharts();
   try{ renderMobileResumo(); }catch(e){ console.error('modo resumo', e); }
+  try{ renderSupMaq(); }catch(e){ console.error('equipes', e); }
   renderTiposParadas();
   renderResumoMensal();
   renderPivot();
@@ -2553,7 +2743,7 @@ const HEADER_ALIASES = {
   tpar: ['Tipo Paralização','Tipo Paralizacao'], par: ['Paralização','Paralizacao'],
   cls: ['Classificacao_BI','Classificação_BI'], mapa: ['Mapa_Perdas'],
   h: ['Horas'], preco: ['Preço do Recurso','Preco do Recurso'], limite: ['Limites de Perdas','Limite de Perdas'],
-  comp2: ['Competência2','Competencia2'], cdo: ['CDO']
+  comp2: ['Competência2','Competencia2'], cdo: ['CDO'], sup: ['Supervisor']
 };
 
 function excelDateToISO(v){
@@ -2626,7 +2816,8 @@ function processWorkbook(wb, silent, sourceLabel){
       String(get('mapa')||'N/D').trim(),
       horasVal, htrabVal, hperdVal,
       pmecVal, popeVal, pdispVal, toNum(get('preco')), limiteVal, String(get('comp2')||'N/D').trim(),
-      String(get('cdo')||'').trim()
+      String(get('cdo')||'').trim(),
+      String(get('sup')||'').trim()
     ]);
   }
   if(!newRows.length){ if(!silent) alert('Nenhuma linha de dados válida foi encontrada (verifique a coluna de Data).'); return false; }
@@ -3181,6 +3372,7 @@ function frCorPct(p){ return p>=0.8?'#27AE60':(p>=0.4?'#F39C12':'#E74C3C'); }
 function frRenderMovCards(mv, t, t_rit){
   var el=document.getElementById('movCards'); if(!el) return;
   if(!mv.length){ el.innerHTML='<div class="mc">Nenhum contrato no filtro atual.</div>'; return; }
+  if(document.documentElement.classList.contains('mob-resumo')){ try{ el.innerHTML=frMobResumoHTML(mv,t,t_rit); return; }catch(e){ console.error('resumo faturamento', e); } }
   var pt=t.meta>0?t.fat/t.meta:0;
   var h='<div class="mc-tot"><div class="t">GN MS — Faturamento total</div><div class="v">'+frMoeda(t.fat)+'</div>'+
     '<div class="mbar"><i style="width:'+Math.min(pt,1)*100+'%;background:'+frCorPct(pt)+'"></i></div>'+
@@ -3728,7 +3920,7 @@ function frTogO(id, ev){
           <svg class="gear" viewBox="0 0 24 24" fill="#fff" opacity=".75"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96a7.03 7.03 0 00-1.62-.94l-.36-2.54a.48.48 0 00-.48-.41h-3.84a.48.48 0 00-.48.41l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87a.49.49 0 00.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 00-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/></svg>
         </div>
         <div id="movCards"></div>
-        <div class="card scrollx">
+        <div class="card scrollx" id="frMovTabela">
           <table class="tb-mov">
             <thead><tr>
               <th style="width:118px;min-width:118px;">Gestor</th><th style="width:177px;min-width:177px;">Contrato</th>
@@ -3742,7 +3934,7 @@ function frTogO(id, ev){
             <tfoot id="tbMovFoot"></tfoot>
           </table>
         </div>
-        <div class="card">
+        <div class="card" id="frGauges">
           <div class="gauges-row">
             <div class="gauge-card">
               <div class="gauge-card-title">% REALIZAÇÃO</div>
@@ -3781,7 +3973,7 @@ function frTogO(id, ev){
       </div>
 
       <!-- PÁGINA 3 -->
-      <div class="pg">
+      <div class="pg" id="frPgEvo">
         <div class="pg-hd">
           <img class="logo" id="frLogo2" alt="GN">
           <h2>EVOLUÇÃO DE FATURAMENTO DIÁRIO POR CONTRATO</h2>

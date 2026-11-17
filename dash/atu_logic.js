@@ -1,7 +1,7 @@
 
 /* ============================== PCM ============================== */
-var PCM_COLS=["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2","cdo"];
-var PCM_ENC=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0];   // cdo: número do CDO (sem dicionário)
+var PCM_COLS=["dt","ctr","cr","maq","desc","rec","tiporec","op","agr","tal","oper","enc","tpar","par","cls","mapa","h","htrab","hperd","pmec","pope","pdisp","preco","limite","comp2","cdo","sup"];
+var PCM_ENC=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,1];   // cdo: número do CDO (sem dicionário) · sup: supervisor
 
 function xlDate(v){
   if(v==null)return null;
@@ -59,7 +59,8 @@ function processPCM(wb){
       tp==='Mec\u00e2nicas'?h:0, tp==='Operacionais'?h:0, tp==='\u00c0 disposi\u00e7\u00e3o'?h:0,
       Math.round(tn(r[col['Pre\u00e7o do Recurso']])*1e4)/1e4,
       Math.round(lim*1e6)/1e6, cs(r[col['Compet\u00eancia2']]),
-      (function(v){ if(v==null||v==='')return ''; var n=Number(v); return isNaN(n)?String(v).trim():n; })(col['CDO']!=null?r[col['CDO']]:null)]);
+      (function(v){ if(v==null||v==='')return ''; var n=Number(v); return isNaN(n)?String(v).trim():n; })(col['CDO']!=null?r[col['CDO']]:null),
+      cs(col['Supervisor']!=null?r[col['Supervisor']]:'')]);
   }
   if(!out.length)throw new Error('Nenhum registro PCM v\u00e1lido encontrado');
   addLog('  '+out.length+' registros PCM (at\u00e9 '+dtMax+')');
@@ -806,6 +807,7 @@ async function gerar(){
       html=injetarPatchParadas(html);
       html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>'+v.titulo+'</title>');
       if(v.mobileResumo) html=html.replace('window.__MOBILE_RESUMO=false;/*__MR__*/','window.__MOBILE_RESUMO=true;/*__MR__*/');   // celular: modo resumo
+      if(v.supervisores) html=html.replace('window.__SUPS=null;/*__SUPS__*/','window.__SUPS='+JSON.stringify(v.supervisores)+';/*__SUPS__*/');   // celular: links por supervisor (?s=)
 
       var mb=Math.round(html.length/1048576*100)/100;
       addLog('  \u2713 '+v.pasta+' \u2014 '+mb+' MB');

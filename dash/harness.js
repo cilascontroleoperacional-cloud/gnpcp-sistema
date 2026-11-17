@@ -27,6 +27,7 @@ function gerar(ctx, htmlBase, wb1, wb2, grids){
     if(fup&&v.fat) html=require('./followup_dash').injetarFollowup(html,fup,v.crs);
     html=html.replace(/<title>[\s\S]*?<\/title>/,'<title>'+v.titulo+'</title>');
     if(v.mobileResumo) html=html.replace('window.__MOBILE_RESUMO=false;/*__MR__*/','window.__MOBILE_RESUMO=true;/*__MR__*/');   // celular: modo resumo
+    if(v.supervisores) html=html.replace('window.__SUPS=null;/*__SUPS__*/','window.__SUPS='+JSON.stringify(v.supervisores)+';/*__SUPS__*/');   // celular: links por supervisor (?s=)
     out[v.pasta]=html;
   }
   if(fup) out['followup']=require('./followup_dash').paginaFollowup(fup);

@@ -13,6 +13,7 @@ jobs:
     defaults: { run: { working-directory: dash } }
     steps:
       - uses: actions/checkout@v4
+        with: { ref: main }   # sempre o código mais novo (execução que esperou na fila não publica versão antiga)
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - uses: actions/setup-python@v5
