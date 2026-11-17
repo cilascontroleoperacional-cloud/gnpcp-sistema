@@ -1833,19 +1833,14 @@ function frMobResumoHTML(mv, t, t_rit){
     '<div class="frase">Se continuar neste ritmo, o contrato fecha o mês com <b>' + frMoeda(t.proj) + '</b>, que é <b style="color:' + cor + '">' + frPct(t_rit) + ' da meta</b>.</div></div>';
   var eq = supFatEquipes(mv, t);
   if(eq) eq.forEach(function(q){
-    var c2 = frCorRit(q.tot.rit);
     h += '<div class="fr-eq"><h3>Equipe do supervisor ' + _mrEsc(q.g.nome) + '</h3>' +
-      '<div class="cap2">Meta da equipe = parte da meta do contrato proporcional às horas de máquina da equipe na competência.</div>' +
-      '<div class="g3"><div><span>Faturado</span><b>' + frMoeda(q.tot.fat) + '</b></div>' +
-      '<div><span>Projeção</span><b>' + frMoeda(q.tot.proj) + '</b></div>' +
-      '<div><span>Meta da equipe</span><b>' + frMoeda(q.tot.meta) + '</b></div>' +
-      '<div><span>% do contrato</span><b>' + frPct(t.fat > 0 ? q.tot.fat / t.fat : 0) + '</b></div>' +
-      '<div class="rit"><span>Ritmo da equipe</span><b style="color:' + c2 + '">' + (q.tot.rit==null ? '—' : frPct(q.tot.rit)) + '</b></div></div>';
-    if(q.encs.length){
-      h += '<table class="sup-tab"><thead><tr><th>Encarregado</th><th>Faturado</th><th>Ritmo</th></tr></thead><tbody>';
-      q.encs.forEach(function(x){
-        var r = x.fat <= 0 ? '<span class="sub">apoio</span>' : (x.rit==null ? '<span class="sub">sem máquina</span>' : '<span style="color:' + frCorRit(x.rit) + '">' + frPct(x.rit) + '</span>');
-        h += '<tr class="enc"><td>' + _mrEsc(supNomeCurto(x.nome)) + '</td><td>' + frMoeda(x.fat) + '</td><td class="n">' + r + '</td></tr>';
+      '<div class="g3"><div class="rit"><span>Faturado pela equipe</span><b>' + frMoeda(q.tot.fat) + '</b></div>' +
+      '<div class="rit"><span>Parte do faturamento do contrato</span><b style="font-size:19px">' + frPct(t.fat > 0 ? q.tot.fat / t.fat : 0) + '</b></div></div>';
+    var comFat = q.encs.filter(function(x){ return x.fat > 0; });
+    if(comFat.length){
+      h += '<table class="sup-tab"><thead><tr><th>Encarregado</th><th>Faturado</th></tr></thead><tbody>';
+      comFat.forEach(function(x){
+        h += '<tr class="enc"><td>' + _mrEsc(supNomeCurto(x.nome)) + '</td><td class="n" style="font-size:15px">' + frMoeda(x.fat) + '</td></tr>';
       });
       h += '</tbody></table>';
     }
