@@ -81,7 +81,7 @@ function processFR4(wb){
               : col['Comp/Semana']!=null ? col['Comp/Semana'] : null;
   if(colComp==null)throw new Error('Coluna de Competência não encontrada no Boletim');
 
-  var dim={cr:[],sup:[],enc:[],op:[],tip:[],comp:[],agr:[],cod_op:[]},dm={};
+  var dim={cr:[],sup:[],enc:[],op:[],tip:[],comp:[],agr:[],cod_op:[],fun:[]},dm={};
   for(var kk in dim)dm[kk]={};
   function gd(k,v){if(!(v in dm[k])){dm[k][v]=dim[k].length;dim[k].push(v);}return dm[k][v];}
   ['Principal','Apoio','Suporte','N/D'].forEach(function(t){gd('tip',t);});
@@ -108,7 +108,8 @@ function processFR4(wb){
       tn(r[col['Preço do Recurso']]),tn(r[col['Valor Total']]),
       gd('agr',cs(r[col['Agrupamentos de Atividades']]||'','')),
       tn(r[col['Total Horas']]),tn(r[col['Escala de Horas']]),tn(r[col['Preço']]),
-      contIdx!=null?tn(r[contIdx]):1,gd('cod_op',cs(r[col['Cod. Operacao']]||'',''))]);
+      contIdx!=null?tn(r[contIdx]):1,gd('cod_op',cs(r[col['Cod. Operacao']]||'','')),
+      gd('fun',cs(col['Funcao']!=null?r[col['Funcao']]:''))]);   // 18: função (Trabalhador Florestal = mão de obra)
   }
   if(!rows.length)throw new Error('Nenhum registro FR4 válido encontrado');
   addLog('  '+rows.length+' apontamentos (até '+dtMax+')');
