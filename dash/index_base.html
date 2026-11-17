@@ -1781,6 +1781,8 @@ function renderSupMaq(){
       h += linha('enc', supNomeCurto(e), maqs(porEnc[e]) + ' máq.', computeKPIs(porEnc[e]));
     });
   });
+  var ra = rows.filter(function(r){ return supApoio(r[IDX.enc]); });   // turma de apoio e manutenção, unificada
+  if(ra.length) h += linha('sup', 'Apoio e manutenção', maqs(ra) + ' máquinas · turma unificada', computeKPIs(ra));
   document.getElementById('mrSupTab').innerHTML = h + '</tbody>';
 }
 window.addEventListener('load', function(){ try{ renderSupMaq(); }catch(e){ console.error('equipes', e); } });
