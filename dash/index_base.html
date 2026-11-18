@@ -1432,7 +1432,7 @@ function rodapeTxt(){
   var d = '';
   try{ if(typeof FR4 !== 'undefined' && FR4 && FR4.dtMax) d = (typeof frBR === 'function') ? frBR(FR4.dtMax) : String(FR4.dtMax); }catch(e){}
   if(!d){ var m = ''; (typeof ROWS !== 'undefined' ? ROWS : []).forEach(function(r){ var x = r[IDX.dt]; if(x && x > m) m = x; }); if(m) d = fmtDateBR(m); }
-  return (d ? 'Dados até ' + d + ' · ' : '') + 'Build: 2026-08-13 · Gerado em ' + new Date().toLocaleTimeString('pt-BR');
+  return (d ? 'Dados até ' + d + ' · ' : '') + 'Gerado em ' + new Date().toLocaleTimeString('pt-BR');
 }
 function rodapeAtualizar(){
   var t = rodapeTxt();
@@ -3018,14 +3018,14 @@ window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz =
 function switchDashTab(id, el){
   document.querySelectorAll('.dash-tab').forEach(function(d){ d.classList.remove('active'); });
   if(el) el.classList.add('active');
-  var root = document.getElementById('frRoot');
-  if(id === 'fat'){
+  var root = document.getElementById('frRoot');   // não existe nos dashboards sem Faturamento (Mecanizados)
+  if(id === 'fat' && root){
     document.body.classList.add('fr-mode');
     root.classList.add('on');
     if(!window.__frOK) frInit(); else frSyncTheme();
   } else {
     document.body.classList.remove('fr-mode');
-    root.classList.remove('on');
+    if(root) root.classList.remove('on');
     window.dispatchEvent(new Event('resize'));
   }
 }
