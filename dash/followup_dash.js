@@ -98,6 +98,8 @@ const CSS = `
 #fupRoot{display:none;position:fixed;inset:0;top:38px;overflow:auto;background:#001450;color:#E8EEF8;font-family:inherit;z-index:9000;padding:16px 20px 40px}
 #fupRoot.solo{display:block;position:static;min-height:100vh}
 #fupRoot h2{margin:0 0 4px;font-size:20px}
+#fupRoot .fup-foot{text-align:center;font-size:11px;line-height:1.5;color:#8AA0C0;padding:18px 10px max(12px,env(safe-area-inset-bottom));margin-top:18px;border-top:1px solid rgba(46,95,163,.35)}
+#fupRoot .fup-foot b{color:#C9D6EA}
 #fupRoot .fup-sub{color:#8AA0C0;font-size:12px;margin-bottom:14px}
 #fupRoot .fup-ctl{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end}
 #fupRoot .fup-ctl label{font-size:11px;color:#8AA0C0;text-transform:uppercase;letter-spacing:.05em;display:flex;flex-direction:column;gap:4px}
@@ -250,6 +252,8 @@ function tabela(){
   $('fupMain').innerHTML=h;
 }
 window.fupInit=function(){if(window._fupOk)return;window._fupOk=true;
+  (function(){var t='';if(typeof window.rodapeTxt==='function'){t=window.rodapeTxt();}else{var m='';F.dt.forEach(function(x){if(x&&x>m)m=x;});t=(m?'Dados até '+dBR(m)+' · ':'')+'Gerado em '+new Date().toLocaleTimeString('pt-BR');}
+   document.querySelectorAll('#fupRoot .rodapeData').forEach(function(e){e.textContent=t;});})();
   $('fupCR').onchange=trocarCR;$('fupFaz').onchange=trocarFaz;$('fupComp').onchange=render;$('fupTal').onchange=render;$('fupAtv').onchange=render;
   ['barras','tabela','concl'].forEach(function(v){$('fupV_'+v).onclick=function(){VIEW=v;render();};});preencher();};
 if(document.getElementById('fupRoot').classList.contains('solo')){window.fupInit();return;}
@@ -282,7 +286,8 @@ function blocoRaiz(d, solo, atualizado) {
     '<label>Talh&atilde;o<select id="fupTal"></select></label><label>Atividade<select id="fupAtv" style="min-width:280px;max-width:420px"></select></label><label>Compet&ecirc;ncia<select id="fupComp"></select></label>' +
     '<div class="fup-seg"><button id="fupV_barras" class="on">&#9776; Barras por talh&atilde;o</button><button id="fupV_tabela">&#9638; Tabela de totais</button><button id="fupV_concl">&#10004; Conclu&iacute;das (98% a 105%)</button></div></div>' +
     '<div id="fupMain"></div>' +
-    '<div class="fup-leg" id="fupLeg"><span><i style="background:#27AE60"></i>100% da &aacute;rea</span><span><i style="background:#F5A623"></i>Em andamento</span><span><i style="background:#4F7BC4"></i>Atividade sem % (km, hora, dia)</span></div></div>\n' +
+    '<div class="fup-leg" id="fupLeg"><span><i style="background:#27AE60"></i>100% da &aacute;rea</span><span><i style="background:#F5A623"></i>Em andamento</span><span><i style="background:#4F7BC4"></i>Atividade sem % (km, hora, dia)</span></div>\n' +
+    '<div class="fup-foot">GN Empreendimentos Florestais &middot; Base de apontamento CDO<br><b>Cilas Andrei &mdash; Analista de PCP</b> &middot; <span class="rodapeData"></span></div></div>\n' +
     '<script>window.__FUP__=' + JSON.stringify(d).replace(/<\//g, '<\\/') + ';' + JS + '</script>\n';
 }
 

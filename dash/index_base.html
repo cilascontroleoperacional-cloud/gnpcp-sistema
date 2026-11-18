@@ -258,7 +258,7 @@ tbody tr:hover{background:rgba(46,95,163,.12);}
 /* ===== MODO RESUMO NO CELULAR (variantes com mobileResumo, ex.: CR1421) ===== */
 .mr-only{display:none;}
 @media (max-width:760px){
-  html.mob-resumo #pcmMain > *:not(.kpi-grid):not(.mr-keep):not(.mr-only){display:none !important;}
+  html.mob-resumo #pcmMain > *:not(.kpi-grid):not(.mr-keep):not(.mr-only):not(.footer){display:none !important;}
   html.mob-resumo #pcmMain > .mr-only{display:block; margin-bottom:14px;}
   html.mob-resumo #kpiGrid .kpi:nth-child(n+4){display:none;}          /* horas vão para o quadro "Totais de horas" */
   html.mob-resumo #kpiGrid{grid-template-columns:repeat(3,1fr) !important; gap:8px;}
@@ -1427,7 +1427,20 @@ themeBtn.addEventListener('click', ()=>{
   setTheme(cur === 'dark' ? 'light' : 'dark');
 });
 
-document.getElementById('genDate').textContent = 'Dados até 2026-08-09 · Gerado em ' + new Date().toLocaleTimeString('pt-BR');
+/* rodapé único de todas as abas (18/11/2026): data do último dado (produção; sem ela, máquinas) */
+function rodapeTxt(){
+  var d = '';
+  try{ if(typeof FR4 !== 'undefined' && FR4 && FR4.dtMax) d = (typeof frBR === 'function') ? frBR(FR4.dtMax) : String(FR4.dtMax); }catch(e){}
+  if(!d){ var m = ''; (typeof ROWS !== 'undefined' ? ROWS : []).forEach(function(r){ var x = r[IDX.dt]; if(x && x > m) m = x; }); if(m) d = fmtDateBR(m); }
+  return (d ? 'Dados até ' + d + ' · ' : '') + 'Build: 2026-08-13 · Gerado em ' + new Date().toLocaleTimeString('pt-BR');
+}
+function rodapeAtualizar(){
+  var t = rodapeTxt();
+  ['genDate','frGenDate'].forEach(function(id){ var e = document.getElementById(id); if(e) e.textContent = t; });
+  document.querySelectorAll('.rodapeData').forEach(function(e){ e.textContent = t; });
+}
+rodapeAtualizar();
+window.addEventListener('load', rodapeAtualizar);
 
 // ---- SIDEBAR MOBILE TOGGLE ----
 const sidebar = document.getElementById('sidebar');
@@ -3098,8 +3111,7 @@ function frInit(){
   if(srcLogo) ['frLogo1','frLogo2','frLogo3','frLogoTop'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.src = srcLogo.src;
   });
-  document.getElementById('frGenDate').textContent =
-    'Dados até ' + frBR(FR4.dtMax) + ' · Build: 2026-08-13 · Gerado em ' + new Date().toLocaleTimeString('pt-BR');
+  rodapeAtualizar();
 
   /* Badge de defasagem: acende quando o último dado tem mais de 2 dias corridos */
   (function(){
